@@ -1,7 +1,7 @@
-export enum Prod {
-  gpu = "default",
-  laptop = "laptop",
+export enum Urls {
+  andAnother = "default",
+  another = "laptop",
   general = "general",
 }
-const prod = Prod.laptop;
-export default prod;
+const defaultUrl = Urls.general;
+export default defaultUrl;

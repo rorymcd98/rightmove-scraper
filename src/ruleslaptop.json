@@ -1,6 +1,0 @@
-{
-  "rtx": {
-    "mustInclude": [["rtx"], ["book"]],
-    "mustExclude": []
-  }
-}
