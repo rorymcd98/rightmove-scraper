@@ -1,0 +1,110 @@
+{
+  "titan": {
+    "mustInclude": [["titan"]],
+    "mustExclude": ["titanium"]
+  },
+  "2080": {
+    "mustInclude": [["2080"]],
+    "mustExclude": [" ", " ti ", "0ti", " ti"]
+  },
+  "2080 ti": {
+    "mustInclude": [["2080"], [" ti ", "0ti", "ti ", " ti"]],
+    "mustExclude": [" "]
+  },
+  "3060": {
+    "mustInclude": [["3060"]],
+    "mustExclude": [" ti ", "0ti", " ti"]
+  },
+  "3060 ti": {
+    "mustInclude": [["3060"], [" ti ", "0ti", "ti ", " ti"]],
+    "mustExclude": []
+  },
+  "3070": {
+    "mustInclude": [["3070"]],
+    "mustExclude": [" ti ", "0ti", " ti"]
+  },
+  "3070 ti": {
+    "mustInclude": [["3070"], [" ti ", "0ti", "ti ", " ti"]],
+    "mustExclude": []
+  },
+  "3080": {
+    "mustInclude": [["3080"]],
+    "mustExclude": [" ti ", "0ti", " ti"]
+  },
+  "3080 ti": {
+    "mustInclude": [["3080"], [" ti ", "0ti", "ti ", " ti"]],
+    "mustExclude": []
+  },
+  "3090": {
+    "mustInclude": [["3090"]],
+    "mustExclude": [" ti ", "0ti", " ti"]
+  },
+  "3090 ti": {
+    "mustInclude": [["3090"], [" ti ", "0ti", "ti ", " ti"]],
+    "mustExclude": []
+  },
+  "4060": {
+    "mustInclude": [["4060"]],
+    "mustExclude": [" ti ", "0ti", " ti"]
+  },
+  "4060 ti": {
+    "mustInclude": [["4060"], [" ti ", "0ti", "ti ", " ti"]],
+    "mustExclude": []
+  },
+  "4070": {
+    "mustInclude": [["4070"]],
+    "mustExclude": [" ti ", "0ti", " ti"]
+  },
+  "4070 ti": {
+    "mustInclude": [["4070"], [" ti ", "0ti", "ti ", " ti"]],
+    "mustExclude": []
+  },
+  "4080": {
+    "mustInclude": [["4080"]],
+    "mustExclude": [" ti ", "0ti", " ti"]
+  },
+  "4080 ti": {
+    "mustInclude": [["4080"], [" ti ", "0ti", "ti ", " ti"]],
+    "mustExclude": []
+  },
+  "4090": {
+    "mustInclude": [["4090"]],
+    "mustExclude": [" ti ", "0ti", " ti"]
+  },
+  "4090 ti": {
+    "mustInclude": [["4090"], [" ti ", "0ti", "ti ", " ti"]],
+    "mustExclude": []
+  },
+  "6700": {
+    "mustInclude": [["6700"]],
+    "mustExclude": []
+  },
+  "6750": {
+    "mustInclude": [["6750"]],
+    "mustExclude": []
+  },
+  "6800": {
+    "mustInclude": [["6800"]],
+    "mustExclude": []
+  },
+  "6900": {
+    "mustInclude": [["6900"]],
+    "mustExclude": []
+  },
+  "6950": {
+    "mustInclude": [["6950"]],
+    "mustExclude": []
+  },
+  "7800M XT": {
+    "mustInclude": [["7800"]],
+    "mustExclude": []
+  },
+  "6850M XT": {
+    "mustInclude": [["6850"]],
+    "mustExclude": []
+  },
+  "6700M/S": {
+    "mustInclude": [["6700"]],
+    "mustExclude": []
+  }
+}

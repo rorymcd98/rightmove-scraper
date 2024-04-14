@@ -1,0 +1,35 @@
+{
+  "name": "gumtree-gpu",
+  "version": "1.0.0",
+  "repository": "https://github.com/rorymcd98/gumtree-gpu",
+  "author": "<rorymcd98@gmail.com>",
+  "license": "MPL2.0",
+  "private": true,
+  "scripts": {
+    "lint": "eslint --ext .ts .",
+    "scrape": "ts-node-esm -T src/run-scrape.ts",
+    "parse": "ts-node-esm -T src/parse-prices.ts",
+    "cli": "ts-node-esm -T src/run-cli.ts"
+  },
+  "dependencies": {
+    "@apify/tsconfig": "^0.1.0",
+    "@types/blessed": "^0.1.22",
+    "@types/node": "^20.4.1",
+    "@types/opn": "^5.5.0",
+    "@typescript-eslint/eslint-plugin": "^5.61.0",
+    "@typescript-eslint/parser": "^5.61.0",
+    "blessed": "^0.1.81",
+    "crawlee": "^3.4.0",
+    "eslint": "^8.44.0",
+    "eslint-plugin-jsx-a11y": "^6.7.1",
+    "fuse.js": "^6.6.2",
+    "open": "^9.1.0",
+    "opn": "^6.0.0",
+    "playwright": "^1.35.1",
+    "ts-node": "^10.9.1",
+    "typescript": "^5.2.0-dev.20230717"
+  },
+  "devDependencies": {
+    "eslint-plugin-react": "^7.32.2"
+  }
+}
