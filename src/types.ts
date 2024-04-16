@@ -1,4 +1,4 @@
-export type Tenure = "freehold" | "leasehold" | "sharehold" | "none" | "other";
+export type Tenure = "freehold" | "leasehold" | "share of freehold" | "shared ownership" | "none" | "other";
 
 export interface ListingDebug{
   footageResolution: "listed" | "in-text" | "gpt-image" | "unresolved";

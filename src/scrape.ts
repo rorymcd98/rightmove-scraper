@@ -1,8 +1,8 @@
 // For more information, see https://crawlee.dev/
-import { PlaywrightCrawler, Dataset, Log, Request } from "crawlee";
+import { PlaywrightCrawler, Dataset, Log, Request, enqueueLinks } from "crawlee";
 import { ElementHandle, Page } from "playwright";
 import { IndexPage, ListingDebug, RightmoveListing, Tenure } from "./types";
-import { findSquareFootageNlpAsync } from "./npl-sqft";
+import { findSquareFootageNlpAsync } from "./nlp-sqft";
 import { getSquareFootageFromGptAsync } from "./gpt-sqft";
 import { findAllImagesAsync } from "./find-images";
 
@@ -48,13 +48,8 @@ async function findPriceInPoundsAsync(page: Page, log: Log){
   return parseInt(rawPrice_pounds);
 }
 
-async function findAddedOrReducedDateAsync(page: Page, log: Log){
-  const datesList = ["Added ", "Reduced "];
-  const addedOrReduced = await findElementsStartingWithsAsync(page, "div", datesList);
-  const dateChangeText = addedOrReduced?.[0];
- 
+function getDateFromDateChangedText(dateChangeText: string | null){
   if(dateChangeText == undefined){
-    log.warning(`Expected to find a 'div' starting with "added on" or "reduced on" but didn't`);
     return;
   }
   
@@ -71,21 +66,30 @@ async function findAddedOrReducedDateAsync(page: Page, log: Log){
   return getDateFromAddedOrReducedString(dateChangeText);
 }
 
+async function findAddedOrReducedDateOnListingAsync(page: Page, log: Log){
+  const datesList = ["Added ", "Reduced "];
+  const addedOrReduced = await findElementsStartingWithsAsync(page, "div", datesList);
+  const dateChangeText = addedOrReduced?.[0];
+ 
+  return getDateFromDateChangedText(dateChangeText);
+}
+
 // Just searches the page for a <p>freehold || leasehold || sharehold</p>
 async function findTenureBackupAsync(page: Page): Promise<Tenure | undefined>{
   const tenures = await page.$$eval("p", (ps) => {
     return ps
       .map(p => p.textContent?.toLowerCase()) // transform to lower case
-      .filter(text => text === 'freehold' || text === 'leasehold' || text === 'sharehold'); // strict equality check
+      .filter(text => text === 'freehold' || text === 'leasehold' || text === 'share of freehold' || text === 'shared ownership'); // strict equality check
   });
 
   switch(tenures[0]){
     case "freehold":
-    case "sharehold":
+    case "share of freehold":
     case "leasehold":
+    case "shared ownership":
       return tenures[0];
     case "share":
-      return "sharehold";
+      return "share of freehold";
     default:
       return undefined
   }
@@ -103,11 +107,12 @@ async function findTenureAsync(page: Page, log: Log): Promise<Tenure>{
       log.warning("Could not find tenure information");
       return "none";
     case "freehold":
-    case "sharehold":
     case "leasehold":
       return tenureValue;
+    case "shared":
+      return "shared ownership"
     case "share":
-      return "sharehold";
+      return "share of freehold";
     default: {
       log.info(`Tenure value of '${tenureValue}' is not recongised`)
       return "other"; 
@@ -128,7 +133,7 @@ async function findSquareFootageAsync(page: Page, log: Log, request: Request): P
     }
     return [nlpSquareFootage, "in-text"];
   }
-  return [parseInt(squareFootValue), "listed"];  
+  return [parseInt(squareFootValue.replace(",", "")), "listed"];  
 }
 
 function splitString(str: string, delimeter: string) {
@@ -157,7 +162,7 @@ export function createListingScraper() {
         log.warning(`$Listing doesn't have square footage`);
       }
 
-      const addedOrReducedDate = await findAddedOrReducedDateAsync(page, log);
+      const addedOrReducedDate = await findAddedOrReducedDateOnListingAsync(page, log);
 
       const rawPriceNumber_pounds = await findPriceInPoundsAsync(page, log);
 
@@ -199,7 +204,10 @@ export function createListingScraper() {
 
 
 function getDateFromAddedOrReducedString(addedOrReduced: string): Date{
-  return new Date(addedOrReduced.split(" on")[1]);
+  const englishDate = addedOrReduced.split(" on")[1];
+  if(englishDate == undefined) return new Date(0);
+  const englishDateArray = englishDate?.split("/");
+  return new Date(`${englishDateArray[2]}/${englishDateArray[1]}/${englishDateArray[0]}`);
 }
 
 // Parses a string containing a date into a date, or returns undefined if it is unable to
@@ -207,16 +215,32 @@ async function getDateFromListingEleAsync(listing: ElementHandle<SVGElement | HT
   const lastListingDateEle = await listing.$(".propertyCard-branchSummary-addedOrReduced");
   const lastListingDateText = await lastListingDateEle?.innerText();
   if(lastListingDateText == undefined) return undefined;
-  return getDateFromAddedOrReducedString(lastListingDateText); 
+  return getDateFromDateChangedText(lastListingDateText); 
 }
 
 // Find all the listings on page 1, 2, 3, 4... 
 export function createListingFinder(notBefore: Date) {
   const crawler = new PlaywrightCrawler({
-    async requestHandler({ request, page, log, saveSnapshot }) {
+    async requestHandler({ request, page, log }) {
+      // Determine if the last listing is too old
+      const listings = await page.$$(".l-searchResult");
+      const listingDate = await getDateFromListingEleAsync(listings.at(-1)!);
+      if (listingDate == undefined || listingDate < notBefore) {
+        log.info("Reached listings which were too old, returning. (This assumes we're searching from newest first)");
+    
+        const indexOfCurrentRequest = crawler.requestList?.requests.map(x => x.url).indexOf(request.url);
+    
+        // Make the request list only go up to indexOfCurrentRequest
+        let requestDict = crawler.requestList?.requests;
+        if (indexOfCurrentRequest !== -1 &&  requestDict != undefined) {
+          requestDict = requestDict.slice(0, indexOfCurrentRequest);
+        }
+    
+        return;
+    }
+
       log.info(`Getting results for url ${request.loadedUrl?.split(".co.uk")[1]}`)
       const results: string[] = [];
-      const listings = await page.$$(".l-searchResult");
 
       if (listings.length == 0) {
         log.info(`No listings found for the url ${request.loadedUrl}, terminating`);
@@ -246,12 +270,6 @@ export function createListingFinder(notBefore: Date) {
 
       // Push the list of urls to the dataset
       await Dataset.pushData<IndexPage>(indexPage);
-
-      // Determine if the last listing is too old
-      const listingDate = await getDateFromListingEleAsync(listings.at(-1)!);
-      if (listingDate == undefined || listingDate < notBefore) {
-        log.info("Reached listings which were too old, returning. (This assumes we're searching from newest first)")
-      }
     },
     // Uncomment this option to see the browser window.
     headless: true,

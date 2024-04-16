@@ -1,4 +1,2 @@
-# gumtree-gpu
-Personal scraper for gumtree gpu prices
-
-Mostly interested in learning about apify crawlers
+# Rightmove scraper
+This project lets me scrape rightmove links to find and sort by square footage

@@ -48,6 +48,6 @@ export async function getSquareFootageFromGptAsync(page: Page, log: Log): Promis
     if(firstMatch == undefined){
         return firstMatch;
     } else {
-        return parseInt(firstMatch);
+        return parseInt(firstMatch.replace(",", ""));
     }
 }
