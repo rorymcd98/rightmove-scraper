@@ -45,7 +45,7 @@ function buildListingUrls(listingIds: string[]){
 const url = SearchUrls[defaultUrl];
 (async () => {
   const startingIndex = 0
-  const endingIndex = 750
+  const endingIndex = 100;
   const step = 24; // rightmove default
   const indexPageUrls = createIndexedUrls(url, startingIndex, endingIndex, step);
 
@@ -57,7 +57,7 @@ const url = SearchUrls[defaultUrl];
   // config.set("defaultRequestQueueId", "indexing-"+defaultUrl);
 
   var notBeforeDate = new Date();
-  notBeforeDate.setDate(notBeforeDate.getDate() - 21);
+  notBeforeDate.setDate(notBeforeDate.getDate());
 
   const crawler = createListingFinder(notBeforeDate);
   console.log(indexPageUrls)

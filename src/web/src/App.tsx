@@ -41,7 +41,7 @@ function App() {
 
   useEffect(() => {
     const fetchData = async () => {
-      const importedData = await (await import('../../../storage/datasets/all/000000002.json')).default.listings as RightmoveListing[];
+      const importedData = await (await import('../../../storage/datasets/all/000000006.json')).default.listings as RightmoveListing[];
       // Re-hydrate
       for (let datum of importedData){
         datum.adDate = datum.adDate == null ? null : new Date(datum.adDate);
