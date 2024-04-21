@@ -143,7 +143,7 @@ async function findTenureAsync(page: Page, log: Log): Promise<Tenure>{
 }
 
 async function findSquareFootageAsync(page: Page, log: Log, request: Request): Promise<[number, ListingDebug["footageResolution"]] | undefined> {
-  const squareFootSibling = await page.$("svg[icon=ruler-combined]");
+  const squareFootSibling = await page.$("svg[data-icon=ruler-combined]");
   const squareFootParent = await squareFootSibling?.evaluateHandle((node)=>node.parentElement);
   
   // This should be in the form `512 sq ft / 49 sq m`
