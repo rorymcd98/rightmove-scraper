@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { RightmoveListing } from '../../types';
+import { PropertyListing } from '../../types';
 interface ListingProps {
-  listing: RightmoveListing;
+  listing: PropertyListing;
   showHidden: boolean;
   showFavourite: boolean;
 }

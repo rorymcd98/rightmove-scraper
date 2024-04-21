@@ -4,8 +4,8 @@ import { Page } from "playwright";
 export async function findSquareFootageNlpAsync(page: Page): Promise<number | undefined>{
     // Obtain the entire page content as text
   const pageContent = await page.content();
-    const squareFootPattern = /(\d+(\,\d+)?(\.\d+)?)\s?(sq|square|sqr)(\s?)(foot|feet|ft|f)/gi;
-    const squareMeterPattern = /(\d+(\,\d+)?(\.\d+)?)\s?(sq|square|sqr)(\s?)(m|mtr|meter)/gi;
+    const squareFootPattern = /(\d+(\,\d+)?(\.\d+)?)\s?(sq|square|sqr)(\.?)(\s?)(foot|feet|ft|f)/gi;
+    const squareMeterPattern = /(\d+(\,\d+)?(\.\d+)?)\s?(sq|square|sqr)(\.?)(\s?)(m|mtr|meter)/gi;
 
     const highestSquareFootage = findHighestArea(pageContent, squareFootPattern);
     if (highestSquareFootage < 250){

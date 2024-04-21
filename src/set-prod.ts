@@ -1,7 +1,5 @@
-export enum Urls {
-  andAnother = "default",
-  another = "laptop",
+export enum Categories {
   general = "general",
 }
-const defaultUrl = Urls.general;
+const defaultUrl = Categories.general;
 export default defaultUrl;

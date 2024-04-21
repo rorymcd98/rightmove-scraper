@@ -1,15 +1,15 @@
 import React, { useEffect, useRef, useState } from 'react'
 import './App.css'
 import Listing from './Listing' // Import the new Listing component
-import { RightmoveListing } from '../../types';
+import { PropertyListing } from '../../types';
 
 function App() {
-  const [data, setData] = useState<RightmoveListing[]>([]);
+  const [data, setData] = useState<PropertyListing[]>([]);
   const [filterDate, setFilterDate] = useState('');
   const [showFavourite, setShowFavourite] = useState<boolean>(false);
   const [showHidden, setShowHidden] = useState<boolean>(false);
 
-  const originalData = useRef<RightmoveListing[]>([]);
+  const originalData = useRef<PropertyListing[]>([]);
 
   const sortSquareFootage = () => {
     let sortedData = [...originalData.current];
@@ -41,10 +41,11 @@ function App() {
 
   useEffect(() => {
     const fetchData = async () => {
-      const importedData = await (await import('../../../storage/datasets/all/000000006.json')).default.listings as RightmoveListing[];
+      const importedData = await (await import('../../../storage/datasets/all/000000006.json')).default.listings as PropertyListing[];
       // Re-hydrate
       for (let datum of importedData){
         datum.adDate = datum.adDate == null ? null : new Date(datum.adDate);
+        datum.site = datum.site ?? "rightmove";
       }
       
       originalData.current = importedData;

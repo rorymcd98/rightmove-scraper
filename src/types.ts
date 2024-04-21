@@ -4,7 +4,9 @@ export interface ListingDebug{
   footageResolution: "listed" | "in-text" | "gpt-image" | "unresolved";
 }
 
-export interface RightmoveListing {
+export type Sites = "rightmove" | "onthemarket" | "zoopla";
+
+export interface PropertyListing {
   listingId: number; // also in URL
   url: string;
   title: string;
@@ -15,11 +17,30 @@ export interface RightmoveListing {
   squareFootage: number | null;
   tenure: Tenure;
   imageUrls: string[];
-  debug: ListingDebug
+  debug: ListingDebug;
+  site: Sites | null;
+}
+
+export interface RightmoveListing extends PropertyListing {
+  site: "rightmove";
+}
+
+export interface ZooplaListing extends PropertyListing {
+  site: "zoopla";
+}
+
+export interface OnTheMarketListing extends PropertyListing {
+  site: "onthemarket";
+}
+
+
+export type IndexedListing = {
+  listingId: string,
+  listingDate: Date | undefined,
 }
 
 export type IndexPage = {
   url: string | null;
   dateFound: Date;
-  listingUrls: string[];
+  listings: IndexedListing[];
 };

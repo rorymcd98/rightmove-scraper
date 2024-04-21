@@ -1,10 +1,10 @@
 // For more information, see https://crawlee.dev/
 import { PlaywrightCrawler, Dataset, Log, Request, enqueueLinks } from "crawlee";
 import { ElementHandle, Page } from "playwright";
-import { IndexPage, ListingDebug, RightmoveListing, Tenure } from "./types";
+import { IndexPage, IndexedListing, ListingDebug, RightmoveListing, Tenure } from "../types";
 import { findSquareFootageNlpAsync } from "./nlp-sqft";
 import { getSquareFootageFromGptAsync } from "./gpt-sqft";
-import { findAllImagesAsync } from "./find-images";
+import { findAllRightmoveImagesAsync } from "./find-images";
 
 
 ///////////// Scrape data from individual listings
@@ -127,7 +127,7 @@ async function findSquareFootageAsync(page: Page, log: Log, request: Request): P
     var nlpSquareFootage = await findSquareFootageNlpAsync(page);
     if (nlpSquareFootage == undefined){
       // do the chat gpt thing here
-      const squareFootageFromGpt = await getSquareFootageFromGptAsync(page, log);
+      const squareFootageFromGpt = await getSquareFootageFromGptAsync(page, log, "rightmove");
       if (squareFootageFromGpt == undefined) return;
       return [squareFootageFromGpt, "gpt-image"]; 
     }
@@ -144,7 +144,7 @@ function splitString(str: string, delimeter: string) {
 }
 
 // Get the data from each listing
-export function createListingScraper() {
+export function createRightmoveListingScraper() {
   const crawler = new PlaywrightCrawler({
     async requestHandler({ request, page, log, saveSnapshot }) {
       const pageTitle = await page.title();
@@ -168,7 +168,7 @@ export function createListingScraper() {
 
       const tenureValue = await findTenureAsync(page, log);
   
-      const imageUrls = await findAllImagesAsync(page);
+      const imageUrls = await findAllRightmoveImagesAsync(page);
 
       const splitTitle = splitString(pageTitle, ", ");
       const titleMain = splitTitle[0];
@@ -188,7 +188,8 @@ export function createListingScraper() {
           squareFootage: squareFootageValue?.[0] ?? null,
           debug: {
             footageResolution: squareFootageValue?.[1] ?? "unresolved",
-          }
+          },
+          site: "rightmove",
         };
 
     // Push the list of urls to the dataset
@@ -219,7 +220,7 @@ async function getDateFromListingEleAsync(listing: ElementHandle<SVGElement | HT
 }
 
 // Find all the listings on page 1, 2, 3, 4... 
-export function createListingFinder(notBefore: Date) {
+export function createRightmoveListingFinder(notBefore: Date) {
   const crawler = new PlaywrightCrawler({
     async requestHandler({ request, page, log }) {
       // Determine if the last listing is too old
@@ -240,7 +241,7 @@ export function createListingFinder(notBefore: Date) {
     }
 
       log.info(`Getting results for url ${request.loadedUrl?.split(".co.uk")[1]}`)
-      const results: string[] = [];
+      const results: IndexedListing[] = [];
 
       if (listings.length == 0) {
         log.info(`No listings found for the url ${request.loadedUrl}, terminating`);
@@ -259,12 +260,14 @@ export function createListingFinder(notBefore: Date) {
           continue;
         }
 
-        results.push(propertyId);
+        const listingDate = await getDateFromListingEleAsync(listing);
+
+        results.push({listingId: propertyId, listingDate: listingDate});
       }
 
       const indexPage: IndexPage = {
         url: request.loadedUrl ?? null, 
-        listingUrls: results, 
+        listings: results, 
         dateFound: new Date()
       };
 
