@@ -1,6 +1,9 @@
 !/storage/
 /storage/*
 
+!/storage.bak/
+/storage.bak/*
+
 # Logs
 logs
 *.log
