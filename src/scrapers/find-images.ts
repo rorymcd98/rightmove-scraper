@@ -15,3 +15,10 @@ export async function findAllZooplaImagesAsync(page: Page): Promise<string[]> {
     });
     return validSrcs;
 }
+
+export async function findAllOnTheMarketImagesAsync(page: Page): Promise<string[]> {
+    const validSrcs = await page.$$eval(".hero-image", (imgs) =>{
+        return imgs.map(img => img.getAttribute("src")!).filter(s => s != null);
+    });
+    return validSrcs;
+}

@@ -1,8 +1,8 @@
-!src/storage/
-src/storage/**
+!/storage/
+/storage/**
 
-!src/storage.bak/
-src/storage.bak/
+!/storage.bak/
+/storage.bak/
 
 # Logs
 logs

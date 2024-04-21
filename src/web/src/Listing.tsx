@@ -73,6 +73,8 @@ const Listing: React.FC<ListingProps> = ({ listing, showHidden, showFavourite })
       <p>Square Footage:{listing.squareFootage}</p>
       <p>Price: {Number(listing.price).toLocaleString('en-GB', { style: 'currency', currency: 'GBP' })}</p>
       <p>Tenure: {listing.tenure}</p>
+      <p>Date: {listing.adDate?.toLocaleDateString()}</p>
+      <p>Site: {listing.site}</p>
       <a href={listing.url} target="_blank" rel="noopener noreferrer">View more</a>
     </span>
     <span>

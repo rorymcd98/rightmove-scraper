@@ -1,5 +1,5 @@
 // For more information, see https://crawlee.dev/
-import { PlaywrightCrawler, Dataset, Log, Request, enqueueLinks } from "crawlee";
+import { PlaywrightCrawler, Dataset, Log, Request } from "crawlee";
 import { ElementHandle, Page } from "playwright";
 import { IndexPage, IndexedListing, ListingDebug, ZooplaListing, Tenure } from "../types";
 import { findSquareFootageNlpAsync } from "./nlp-sqft";
@@ -127,7 +127,7 @@ async function findTenureBackupAsync(page: Page): Promise<Tenure | undefined>{
 
 async function findTenureAsync(page: Page, log: Log): Promise<Tenure>{
   const tenureElements = await findElementsStartingWithsAsync(page, "div", ["Freehold", "Leasehold", "Share of free", "Shared"]);
-  let tenureValue = tenureElements.at(0);
+  let tenureValue = tenureElements.at(0)?.toLowerCase();
   // If we didn't manage to find it, resort to the backup
   tenureValue = tenureValue ?? await findTenureBackupAsync(page);
 

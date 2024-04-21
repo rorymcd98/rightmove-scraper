@@ -73,10 +73,6 @@ const runZooplaScrape = async () => {
 
   const listingScraper = createZooplaListingScraper(listingIdToAdDate);
   const unscrapedListingUrls = buildZooplaListingUrls(newListings.map(x => x.listingId)); 
-  listingScraper.launchContext.userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";  
-  listingScraper.launchContext.launchOptions = listingScraper.launchContext.launchOptions ?? {};
-  listingScraper.launchContext.launchOptions!.headless = false;
-  listingScraper.launchContext.launchOptions!.slowMo = 1000;
 
   await listingScraper.run(unscrapedListingUrls);
 

@@ -39,15 +39,22 @@ function App() {
     setData(filteredData);
   }
 
+  function hydrateListing(listing: PropertyListing){
+    listing.adDate = listing.adDate == null ? null : new Date(listing.adDate);
+    listing.site = listing.site ?? "rightmove"; // rightmoves were the only ones which were null at some point
+  }
+
   useEffect(() => {
     const fetchData = async () => {
-      const importedData = await (await import('../../../storage/datasets/all/000000006.json')).default.listings as PropertyListing[];
-      // Re-hydrate
-      for (let datum of importedData){
-        datum.adDate = datum.adDate == null ? null : new Date(datum.adDate);
-        datum.site = datum.site ?? "rightmove";
-      }
+      const importedRightmoveData = await (await import('../../../storage/datasets/all-rightmove/000000006.json')).default.listings as PropertyListing[];
+      const importedOnTheMarketData = await (await import('../../../storage/datasets/all-onthemarket/000000001.json')).default.listings as PropertyListing[];
       
+      // Re-hydrate
+      importedRightmoveData.forEach(hydrateListing);
+      importedOnTheMarketData.forEach(hydrateListing);
+      
+      // Spenny spready
+      const importedData = [...importedOnTheMarketData, ...importedRightmoveData];
       originalData.current = importedData;
       setData(importedData);
     };

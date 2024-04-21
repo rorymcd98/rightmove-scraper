@@ -1,16 +1,16 @@
 // For more information, see https://crawlee.dev/
 import { PlaywrightCrawler, Dataset, Log, Request } from "crawlee";
 import { ElementHandle, Page } from "playwright";
-import { IndexPage, IndexedListing, ListingDebug, RightmoveListing, Tenure } from "../types";
+import { IndexPage, IndexedListing, ListingDebug, OnTheMarketListing, Tenure } from "../types";
 import { findSquareFootageNlpAsync } from "./nlp-sqft";
 import { getSquareFootageFromGptAsync } from "./gpt-sqft";
-import { findAllRightmoveImagesAsync } from "./find-images";
+import { findAllOnTheMarketImagesAsync } from "./find-images";
 
 
 ///////////// Scrape data from individual listings
 
 function getIdFromUrl(url: string): number {
-  const justTheId = url.split("properties/")[1].split("/")[0];
+const justTheId = url.split("details/")[1].split("/")[0];
   return parseInt(justTheId);
 }
 
@@ -39,39 +39,61 @@ async function findElementsStartingWithsAsync(page: Page, elementType: string, s
 }
 
 async function findPriceInPoundsAsync(page: Page, log: Log){
-  const priceString = await findElementsStartingWithAsync(page, "span", "£");
-  const rawPrice_pounds = priceString.at(0)?.replace(",", "").replace("£", "");
-  if(rawPrice_pounds == undefined){
+  const priceStrings = await findElementsStartingWithAsync(page, "a", "£");
+  const rawPrice_pounds = priceStrings.map(price => parseInt(price?.replace(",", "").replace("£", "") ?? "0"));
+  let maxPrice = 0;
+  for(let price of rawPrice_pounds){
+    maxPrice = Math.max(maxPrice, price);
+  }
+  if(maxPrice < 20_000){
     log.warning("Expected to find a price but didn't");
     return;
   }
-  return parseInt(rawPrice_pounds);
+  return maxPrice;
 }
 
+
+function convertMonthString(monthString: string): number {
+    monthString = monthString.toLowerCase();
+    if(monthString.startsWith("jan")) return 1;
+    if(monthString.startsWith("feb")) return 2; 
+    if(monthString.startsWith("mar")) return 3; 
+    if(monthString.startsWith("apr")) return 4; 
+    if(monthString.startsWith("may")) return 5; 
+    if(monthString.startsWith("jun")) return 6; 
+    if(monthString.startsWith("jul")) return 7; 
+    if(monthString.startsWith("aug")) return 8; 
+    if(monthString.startsWith("sep")) return 9; 
+    if(monthString.startsWith("oct")) return 10; 
+    if(monthString.startsWith("nov")) return 11; 
+    if(monthString.startsWith("dec")) return 12;
+    return 0; 
+}
+
+function converDayString(dayString: string): number {
+  return parseInt(dayString.replace(/\D/g,''));
+}
+
+//Converts `Listed on 1st Apr 2024` to a Date
 function getDateFromDateChangedText(dateChangeText: string | null){
   if(dateChangeText == undefined){
     return;
   }
   
-  if(dateChangeText.includes('yesterday')) {
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    return yesterday;
+  const dateChangeStrings = dateChangeText.split(" ");
+  if(dateChangeStrings.length < 3){
+    return;
   }
 
-  if(dateChangeText.includes('today')) {
-    return new Date();
-  }
-  
-  return getDateFromAddedOrReducedString(dateChangeText);
-}
-
-async function findAddedOrReducedDateOnListingAsync(page: Page, log: Log){
-  const datesList = ["Added ", "Reduced "];
-  const addedOrReduced = await findElementsStartingWithsAsync(page, "div", datesList);
-  const dateChangeText = addedOrReduced?.[0];
+  const yearString = dateChangeStrings.at(-1) ?? "blah";
+  const monthString = dateChangeStrings.at(-2) ?? "jan";
+  const dayString = dateChangeStrings.at(-3) ?? "1st";
  
-  return getDateFromDateChangedText(dateChangeText);
+  const year = parseInt(yearString);
+  const month = convertMonthString(monthString);
+  const day = converDayString(dayString);
+
+  return new Date(year, month-1, day);
 }
 
 // Just searches the page for a <p>freehold || leasehold || sharehold</p>
@@ -96,11 +118,11 @@ async function findTenureBackupAsync(page: Page): Promise<Tenure | undefined>{
 }
 
 async function findTenureAsync(page: Page, log: Log): Promise<Tenure>{
-  const tenureString = "Tenure: ";
-  const tenureElements = await findElementsStartingWithAsync(page, "h2", tenureString);
-  let tenureValue = tenureElements?.at(0)?.replace(tenureString, "").split(" ")[0].trim().toLowerCase();
-  // If we didn't manage to find it, resort to the backup
-  tenureValue = tenureValue ?? await findTenureBackupAsync(page);
+  const tenureElements = await findElementsStartingWithsAsync(page, "span", ["Freehold", "Leasehold", "Share of free", "Shared"]);
+  let tenureValue = tenureElements.at(0)?.toLowerCase();
+  
+  //This backup doesn't work because every page has 'shared ownership' on it 
+  // tenureValue = tenureValue ?? await findTenureBackupAsync(page);
 
   switch(tenureValue){
     case undefined:
@@ -121,13 +143,18 @@ async function findTenureAsync(page: Page, log: Log): Promise<Tenure>{
 }
 
 async function findSquareFootageAsync(page: Page, log: Log, request: Request): Promise<[number, ListingDebug["footageResolution"]] | undefined> {
-  const squareFootElements = await findElementsEndingWithAsync(page, "p", " sq ft");
-  const squareFootValue = squareFootElements?.at(0)?.replace(" sq ft", "");
-  if(squareFootValue == undefined) {
+  const squareFootSibling = await page.$("svg[icon=ruler-combined]");
+  const squareFootParent = await squareFootSibling?.evaluateHandle((node)=>node.parentElement);
+  
+  // This should be in the form `512 sq ft / 49 sq m`
+  const squareAreaValue = await squareFootParent?.asElement()?.innerText();
+  const squareFootValue = squareAreaValue?.split(" sq ft").at(0);
+
+  if(squareFootValue == undefined || Number.isInteger(parseInt(squareFootValue))) {
     var nlpSquareFootage = await findSquareFootageNlpAsync(page);
     if (nlpSquareFootage == undefined){
       // do the chat gpt thing here
-      const squareFootageFromGpt = await getSquareFootageFromGptAsync(page, log, "rightmove");
+      const squareFootageFromGpt = await getSquareFootageFromGptAsync(page, log, "onthemarket");
       if (squareFootageFromGpt == undefined) return;
       return [squareFootageFromGpt, "gpt-image"]; 
     }
@@ -144,9 +171,9 @@ function splitString(str: string, delimeter: string) {
 }
 
 // Get the data from each listing
-export function createRightmoveListingScraper() {
+export function createOnTheMarketListingScraper(listingIdToDateMap: Map<number, Date>) {
   const crawler = new PlaywrightCrawler({
-    async requestHandler({ request, page, log, saveSnapshot }) {
+    async requestHandler({ request, page, log }) {
       const pageTitle = await page.title();
       log.info(`Title of ${request.loadedUrl} is '${pageTitle}'`);
       
@@ -156,31 +183,29 @@ export function createRightmoveListingScraper() {
       }
       const listingId = getIdFromUrl(request.loadedUrl);
 
+      const rawPriceNumber_pounds = await findPriceInPoundsAsync(page, log);
+
+      const tenureValue = await findTenureAsync(page, log);
+  
+      const imageUrls = await findAllOnTheMarketImagesAsync(page);
+
       const squareFootageValue = await findSquareFootageAsync(page, log, request);
 
       if (squareFootageValue == undefined){
         log.warning(`$Listing doesn't have square footage`);
       }
 
-      const addedOrReducedDate = await findAddedOrReducedDateOnListingAsync(page, log);
-
-      const rawPriceNumber_pounds = await findPriceInPoundsAsync(page, log);
-
-      const tenureValue = await findTenureAsync(page, log);
-  
-      const imageUrls = await findAllRightmoveImagesAsync(page);
-
       const splitTitle = splitString(pageTitle, ", ");
       const titleMain = splitTitle[0];
       const location = splitTitle[1];
 
-      const indexPage: RightmoveListing = 
+      const indexPage: OnTheMarketListing = 
         {
           listingId: listingId,
           url: request.loadedUrl,
           title: titleMain,
           location: location,
-          adDate: addedOrReducedDate ?? null,
+          adDate: listingIdToDateMap.get(listingId) ?? new Date(),
           description: null,
           imageUrls: imageUrls,
           price: rawPriceNumber_pounds ?? 0,
@@ -189,11 +214,11 @@ export function createRightmoveListingScraper() {
           debug: {
             footageResolution: squareFootageValue?.[1] ?? "unresolved",
           },
-          site: "rightmove",
+          site: "onthemarket",
         };
 
     // Push the list of urls to the dataset
-    await Dataset.pushData<RightmoveListing>(indexPage);
+    await Dataset.pushData<OnTheMarketListing>(indexPage);
     },
     // Uncomment this option to see the browser window.
     headless: true,
@@ -203,44 +228,23 @@ export function createRightmoveListingScraper() {
 
 ///////////// Find listing links
 
-
-function getDateFromAddedOrReducedString(addedOrReduced: string): Date{
-  const englishDate = addedOrReduced.split(" on")[1];
-  if(englishDate == undefined) return new Date(0);
-  const englishDateArray = englishDate?.split("/");
-  return new Date(`${englishDateArray[2]}/${englishDateArray[1]}/${englishDateArray[0]}`);
-}
-
 // Parses a string containing a date into a date, or returns undefined if it is unable to
 async function getDateFromListingEleAsync(listing: ElementHandle<SVGElement | HTMLElement>): Promise<Date | undefined> {
-  const lastListingDateEle = await listing.$(".propertyCard-branchSummary-addedOrReduced");
+  // In the format `Listed on 1st Apr 2024`
+  const lastListingDateEle = await listing.$(".jlg7241");
   const lastListingDateText = await lastListingDateEle?.innerText();
   if(lastListingDateText == undefined) return undefined;
   return getDateFromDateChangedText(lastListingDateText); 
 }
 
 // Find all the listings on page 1, 2, 3, 4... 
-export function createRightmoveListingFinder(notBefore: Date) {
-  const crawler = new PlaywrightCrawler({
+export function createOnTheMarketListingFinder() {
+  const crawler = new PlaywrightCrawler({ 
     async requestHandler({ request, page, log }) {
       // Determine if the last listing is too old
-      const listings = await page.$$(".l-searchResult");
-      const listingDate = await getDateFromListingEleAsync(listings.at(-1)!);
-      if (listingDate == undefined || listingDate < notBefore) {
-        log.info("Reached listings which were too old, returning. (This assumes we're searching from newest first)");
-    
-        const indexOfCurrentRequest = crawler.requestList?.requests.map(x => x.url).indexOf(request.url);
-    
-        // Make the request list only go up to indexOfCurrentRequest
-        let requestDict = crawler.requestList?.requests;
-        if (indexOfCurrentRequest !== -1 &&  requestDict != undefined) {
-          requestDict = requestDict.slice(0, indexOfCurrentRequest);
-        }
-    
-        return;
-    }
+      const listings = await page.$$(".otm-PropertyCard");
 
-      log.info(`Getting results for url ${request.loadedUrl?.split(".co.uk")[1]}`)
+      log.info(`Getting results for url ${request.loadedUrl?.split(".com")[1]}`)
       const results: IndexedListing[] = [];
 
       if (listings.length == 0) {
@@ -250,17 +254,17 @@ export function createRightmoveListingFinder(notBefore: Date) {
 
       log.info("Found: " +  listings.length);
 
-
       for (const listing of listings) {
-        const listingId = await listing.getAttribute("id");// should be in the form property-{propertyId}
-        const propertyId = listingId?.split("-")[1];
+        const firstChild = await listing.$("div");
+        const listingId = await firstChild?.getAttribute("id");// should be in the form property-{propertyId}
+        const propertyId = listingId?.split("-")?.[1];
+
+        const listingDate = new Date();
 
         if (propertyId == null) {
-          log.warning("Could not find propertyId for listingId:", {listingId});
+          log.error("Could not find propertyId for listingId:", {listingId});
           continue;
         }
-
-        const listingDate = await getDateFromListingEleAsync(listing);
 
         results.push({listingId: propertyId, listingDate: listingDate});
       }

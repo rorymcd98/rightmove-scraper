@@ -32,6 +32,19 @@ async function getZooplaFloorPlanUrlAsync(page: Page): Promise<string | null>{
     return floorPlanUrl;
 }
 
+async function getOnTheMarketFloorPlanUrlAsync(page: Page): Promise<string | null>{
+    if(await page.getByText("Floorplan").isHidden()) return null;
+    await page.getByText("Floorplan").click();
+    const floorPlanImage = await page.getByRole('img', { name: 'Floorplan' }).first();
+    const sourceAttribute = await floorPlanImage?.getAttribute("src");
+
+    if(sourceAttribute == null){
+        return null;
+    }
+
+    return sourceAttribute;
+}
+
 async function askGptForSqrFootage(floorPlanUrl: string): Promise<number | undefined>{
     const response = await openai.chat.completions.create({
         model: "gpt-4-turbo",
@@ -67,6 +80,7 @@ export async function getSquareFootageFromGptAsync(page: Page, log: Log, site: S
     let floorPlanUrl;
     if (site == "rightmove") floorPlanUrl = await getRightmoveFloorPlanUrlAsync(page);
     if (site == "zoopla") floorPlanUrl = await getZooplaFloorPlanUrlAsync(page);
+    if (site == "onthemarket") floorPlanUrl = await getOnTheMarketFloorPlanUrlAsync(page);
 
     if (floorPlanUrl == null){
         log.warning("Something went wrong trying to find the floor plan img src");
