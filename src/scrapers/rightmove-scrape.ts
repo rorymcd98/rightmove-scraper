@@ -174,7 +174,7 @@ export function createRightmoveListingScraper() {
       const titleMain = splitTitle[0];
       const location = splitTitle[1];
 
-      const indexPage: RightmoveListing = 
+      const listingDetails: RightmoveListing = 
         {
           listingId: listingId,
           url: request.loadedUrl,
@@ -193,7 +193,7 @@ export function createRightmoveListingScraper() {
         };
 
     // Push the list of urls to the dataset
-    await Dataset.pushData<RightmoveListing>(indexPage);
+    await Dataset.pushData<RightmoveListing>(listingDetails);
     },
     // Uncomment this option to see the browser window.
     headless: true,
@@ -212,7 +212,8 @@ function getDateFromAddedOrReducedString(addedOrReduced: string): Date{
 }
 
 // Parses a string containing a date into a date, or returns undefined if it is unable to
-async function getDateFromListingEleAsync(listing: ElementHandle<SVGElement | HTMLElement>): Promise<Date | undefined> {
+async function getDateFromListingEleAsync(listing: ElementHandle<SVGElement | HTMLElement> | undefined): Promise<Date | undefined> {
+  if(listing == null) return;
   const lastListingDateEle = await listing.$(".propertyCard-branchSummary-addedOrReduced");
   const lastListingDateText = await lastListingDateEle?.innerText();
   if(lastListingDateText == undefined) return undefined;
@@ -225,7 +226,7 @@ export function createRightmoveListingFinder(notBefore: Date) {
     async requestHandler({ request, page, log }) {
       // Determine if the last listing is too old
       const listings = await page.$$(".l-searchResult");
-      const listingDate = await getDateFromListingEleAsync(listings.at(-1)!);
+      const listingDate = await getDateFromListingEleAsync(listings.at(2));
       if (listingDate == undefined || listingDate < notBefore) {
         log.info("Reached listings which were too old, returning. (This assumes we're searching from newest first)");
     

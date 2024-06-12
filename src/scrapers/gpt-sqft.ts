@@ -47,7 +47,7 @@ async function getOnTheMarketFloorPlanUrlAsync(page: Page): Promise<string | nul
 
 async function askGptForSqrFootage(floorPlanUrl: string): Promise<number | undefined>{
     const response = await openai.chat.completions.create({
-        model: "gpt-4-turbo",
+        model: "gpt-4-o",
         messages: [
         {
             role: "user",
@@ -57,6 +57,7 @@ async function askGptForSqrFootage(floorPlanUrl: string): Promise<number | undef
                 type: "image_url",
                 image_url: {
                     url: floorPlanUrl,
+                    detail: "low",
                 },
             },
             ],

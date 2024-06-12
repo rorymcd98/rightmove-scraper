@@ -18,8 +18,7 @@ function purgeRequestQueueFolder() {
 
 const SearchUrls = {
   [Categories.general]:
-    // "https://www.rightmove.co.uk/property-for-sale/find.html?locationIdentifier=STATION%5E3509&minBedrooms=2&maxPrice=475000&radius=5.0&sortType=6&propertyTypes=&includeSSTC=false&mustHave=&dontShow=&furnishTypes=&keywords=",
-    "https://www.rightmove.co.uk/property-for-sale/find.html?locationIdentifier=USERDEFINEDAREA%5E%7B%22id%22%3A%228479230%22%7D&minBedrooms=2&maxPrice=475000&sortType=6&propertyTypes=&mustHave=&dontShow=&furnishTypes=&keywords=",
+    "https://www.rightmove.co.uk/property-for-sale/find.html?locationIdentifier=USERDEFINEDAREA%5E%7B%22id%22%3A%228479230%22%7D&minBedrooms=2&maxPrice=575000&sortType=6&propertyTypes=&mustHave=&dontShow=&furnishTypes=&keywords=",
 };
 
 function createRightmoveIndexedUrl(baseUrl: string, index: number): string{
@@ -48,12 +47,12 @@ const runRightmoveScrape = async () => {
   // purgeRequestQueueFolder();
 
   // Find the pages
-  config.set("defaultDatasetId", "indexing-"+defaultUrl);
-  config.set("defaultKeyValueStoreId", "indexing-"+defaultUrl);
-  // config.set("defaultRequestQueueId", "indexing-"+defaultUrl);
+  config.set("defaultDatasetId", "indexing-rightmove-"+defaultUrl);
+  config.set("defaultKeyValueStoreId", "indexing-rightmove-"+defaultUrl);
+  config.set("defaultRequestQueueId", "indexing-rightmove-"+Math.random().toString());
 
   var notBeforeDate = new Date();
-  notBeforeDate.setDate(notBeforeDate.getDate());
+  notBeforeDate.setDate(notBeforeDate.getDate() - 5);
 
   const crawler = createRightmoveListingFinder(notBeforeDate);
   console.log(indexPageUrls)
@@ -71,7 +70,7 @@ const runRightmoveScrape = async () => {
   config.set("defaultRequestQueueId", "scraping-rightmove-"+defaultUrl);
 
   const listingScraper = createRightmoveListingScraper();
-  const unscrapedListingUrls = buildRightmoveListingUrls(unscrapedIds.map(x => x.listingId)); 
+  const unscrapedListingUrls = buildRightmoveListingUrls(unscrapedIds.filter(x => x != undefined).map(x => x.listingId)); 
   await listingScraper.run(unscrapedListingUrls);
 
   const allData = (await Dataset.getData<RightmoveListing>()).items;

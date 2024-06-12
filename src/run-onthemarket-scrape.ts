@@ -10,6 +10,8 @@ config.set("purgeOnStart", false);
 
 
 function purgeRequestQueueFolder() {
+  return;
+  // don't want to do this really
   const path = "./storage/request_queues/";
   const files = fs.readdirSync(path);
   for (const file of files) {
@@ -19,7 +21,7 @@ function purgeRequestQueueFolder() {
 
 const SearchUrls = {
   [Categories.general]:
-    "https://www.onthemarket.com/for-sale/property/regents-park-london-central-nw1/?max-price=475000&min-bedrooms=2&radius=4.0&recently-added=7-days&retirement=false&shared-ownership=false",
+    "https://www.onthemarket.com/for-sale/property/regents-park/?max-price=575000&min-bedrooms=2&radius=4.0&retirement=false&shared-ownership=false",
 };
 
 function createOnTheMarketIndexedUrl(baseUrl: string, index: number): string{
@@ -41,7 +43,7 @@ function buildOnTheMarketListingUrls(listingIds: string[]){
 const url = SearchUrls[defaultCategoryName];
 const runOnTheMarketScrape = async () => {
   const startingIndex = 1;
-  const endingIndex = 25;
+  const endingIndex = 3;
   const step = 1; // onthemarket default
   const indexPageUrls = createOnTheMarketIndexedUrls(url, startingIndex, endingIndex, step);
 
@@ -50,7 +52,7 @@ const runOnTheMarketScrape = async () => {
   // Find the pages
   config.set("defaultDatasetId", "indexing-onthemarket-"+defaultCategoryName);
   config.set("defaultKeyValueStoreId", "indexing-onthemarket-"+defaultCategoryName);
-  // config.set("defaultRequestQueueId", "indexing-"+defaultUrl);
+  config.set("defaultRequestQueueId", "indexing-"+ Math.random().toString());
 
   const crawler = createOnTheMarketListingFinder();
   console.log(indexPageUrls)
