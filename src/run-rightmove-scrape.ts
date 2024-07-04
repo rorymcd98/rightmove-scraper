@@ -1,7 +1,7 @@
 import { Configuration, Dataset} from "crawlee";
 import { createRightmoveListingFinder, createRightmoveListingScraper } from "./scrapers/rightmove-scrape";
 import fs from "fs";
-import defaultUrl, { Categories } from "./set-prod";
+import defaultUrl, { Category } from "./set-category";
 import { IndexPage, RightmoveListing } from "./types";
 
 const config = Configuration.getGlobalConfig();
@@ -17,7 +17,7 @@ function purgeRequestQueueFolder() {
 }
 
 const SearchUrls = {
-  [Categories.general]:
+  [Category.general]:
     "https://www.rightmove.co.uk/property-for-sale/find.html?locationIdentifier=USERDEFINEDAREA%5E%7B%22id%22%3A%228479230%22%7D&minBedrooms=2&maxPrice=575000&sortType=6&propertyTypes=&mustHave=&dontShow=&furnishTypes=&keywords=",
 };
 
@@ -40,7 +40,7 @@ function buildRightmoveListingUrls(listingIds: string[]){
 const url = SearchUrls[defaultUrl];
 const runRightmoveScrape = async () => {
   const startingIndex = 0
-  const endingIndex = 100;
+  const endingIndex = 50;
   const step = 24; // rightmove default
   const indexPageUrls = createRightmoveIndexedUrls(url, startingIndex, endingIndex, step);
 
@@ -52,7 +52,7 @@ const runRightmoveScrape = async () => {
   config.set("defaultRequestQueueId", "indexing-rightmove-"+Math.random().toString());
 
   var notBeforeDate = new Date();
-  notBeforeDate.setDate(notBeforeDate.getDate() - 5);
+  notBeforeDate.setDate(notBeforeDate.getDate() - 2);
 
   const crawler = createRightmoveListingFinder(notBeforeDate);
   console.log(indexPageUrls)
@@ -73,9 +73,13 @@ const runRightmoveScrape = async () => {
   const unscrapedListingUrls = buildRightmoveListingUrls(unscrapedIds.filter(x => x != undefined).map(x => x.listingId)); 
   await listingScraper.run(unscrapedListingUrls);
 
-  const allData = (await Dataset.getData<RightmoveListing>()).items;
+  const allNewData = (await Dataset.getData<RightmoveListing>()).items;
+  if (allNewData.length == 0){
+    console.log("No new Data for rightmove")
+    return;
+  }
   const allDataset = await Dataset.open<{listings: RightmoveListing[]}>("all-rightmove");
-  await allDataset.pushData({listings: allData})
+  await allDataset.pushData({listings: allNewData})
 };
 
 runRightmoveScrape();

@@ -2,7 +2,7 @@
 import { Configuration, Dataset} from "crawlee";
 import { createOnTheMarketListingFinder, createOnTheMarketListingScraper } from "./scrapers/onthemarket-scrape";
 import fs from "fs";
-import defaultCategoryName, { Categories } from "./set-prod";
+import defaultCategoryName, { Category } from "./set-category";
 import { IndexPage, OnTheMarketListing } from "./types";
 
 const config = Configuration.getGlobalConfig();
@@ -20,7 +20,7 @@ function purgeRequestQueueFolder() {
 }
 
 const SearchUrls = {
-  [Categories.general]:
+  [Category.general]:
     "https://www.onthemarket.com/for-sale/property/regents-park/?max-price=575000&min-bedrooms=2&radius=4.0&retirement=false&shared-ownership=false",
 };
 
@@ -74,9 +74,13 @@ const runOnTheMarketScrape = async () => {
 
   await listingScraper.run(unscrapedListingUrls);
 
-  const allData = (await Dataset.getData<OnTheMarketListing>()).items;
+  const allNewData = (await Dataset.getData<OnTheMarketListing>()).items;
+  if (allNewData.length == 0){
+    console.log("No new Data for onthermarket")
+    return;
+  }
   const allDataset = await Dataset.open<{listings: OnTheMarketListing[]}>("all-onthemarket");
-  await allDataset.pushData({listings: allData})
+  await allDataset.pushData({listings: allNewData})
 };
 
 runOnTheMarketScrape();

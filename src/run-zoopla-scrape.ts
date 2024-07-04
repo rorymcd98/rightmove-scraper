@@ -2,7 +2,7 @@
 import { Configuration, Dataset} from "crawlee";
 import { createZooplaListingFinder, createZooplaListingScraper } from "./scrapers/zoopla-scrape";
 import fs from "fs";
-import defaultCategoryName, { Categories } from "./set-prod";
+import defaultCategoryName, { Category } from "./set-category";
 import { IndexPage, ZooplaListing } from "./types";
 import { list } from "blessed";
 
@@ -19,7 +19,7 @@ function purgeRequestQueueFolder() {
 }
 
 const SearchUrls = {
-  [Categories.general]:
+  [Category.general]:
     "https://www.zoopla.co.uk/for-sale/property/regents-park/?beds_min=2&price_max=475000&q=Regent%27s+Park%2C+London&radius=0&results_sort=newest_listings&search_source=for-sale&hidePoly=false&polyenc=gvhyH%7EuQ%7EVtkUuYv_CyyAvXqdDc%7B%40mtCa%60EuqAylDua%40eoEuAoyCti%40myCltC%7DpC%7EqG%60%7B%40l%7C%40jfD",
 };
 

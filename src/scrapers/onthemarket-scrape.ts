@@ -7,6 +7,8 @@ import { getSquareFootageFromGptAsync } from "./gpt-sqft";
 import { findAllOnTheMarketImagesAsync } from "./find-images";
 
 
+
+
 ///////////// Scrape data from individual listings
 
 function getIdFromUrl(url: string): number {
@@ -118,7 +120,11 @@ async function findTenureBackupAsync(page: Page): Promise<Tenure | undefined>{
 }
 
 async function findTenureAsync(page: Page, log: Log): Promise<Tenure>{
-  const tenureElements = await findElementsStartingWithsAsync(page, "span", ["Freehold", "Leasehold", "Share of free", "Shared"]);
+  const upperCandidates = ["Freehold", "Leasehold", "Share of free", "Shared"];
+  const lowerCandidates = upperCandidates.map(c => c.toLowerCase());
+  const allCandidates = [...lowerCandidates, ...upperCandidates];
+  
+  const tenureElements = await findElementsStartingWithsAsync(page, "span", allCandidates);
   let tenureValue = tenureElements.at(0)?.toLowerCase();
   
   //This backup doesn't work because every page has 'shared ownership' on it 
@@ -136,6 +142,18 @@ async function findTenureAsync(page: Page, log: Log): Promise<Tenure>{
     case "share":
       return "share of freehold";
     default: {
+      // One last attempt at resolution
+      if (tenureValue && typeof tenureValue === 'string') {
+        if (tenureValue.toLowerCase().includes("freehold")) {
+          return "freehold";
+        } else if (tenureValue.toLowerCase().includes("leasehold")) {
+          return "leasehold";
+        } else if (tenureValue.toLowerCase().includes("shared")) {
+          return "shared ownership";
+        } else if (tenureValue.toLowerCase().includes("share")) {
+          return "share of freehold";
+        }
+      }
       log.info(`Tenure value of '${tenureValue}' is not recongised`)
       return "other"; 
     }

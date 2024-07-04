@@ -7,7 +7,10 @@
   "private": true,
   "scripts": {
     "lint": "eslint --ext .ts .",
-    "scrape": "ts-node-esm -T src/run-scrape.ts",
+    "scrape-all": "concurrently \"npm run scrape-rightmove\" \"npm run scrape-onthemarket\"",
+    "scrape-rightmove": "tsx src/run-rightmove-scrape.ts",
+    "web": "npm run dev --prefix ./src/web", 
+    "scrape-onthemarket": "tsx src/run-onthemarket-scrape.ts",
     "parse": "ts-node-esm -T src/parse-prices.ts",
     "cli": "ts-node-esm -T src/run-cli.ts"
   },
@@ -32,6 +35,7 @@
     "typescript": "^5.2.0-dev.20230717"
   },
   "devDependencies": {
+    "concurrently": "^8.2.2",
     "eslint-plugin-react": "^7.32.2",
     "tsx": "^4.7.2"
   }
