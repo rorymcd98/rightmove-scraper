@@ -13,6 +13,9 @@ function App() {
   const [showHidden, setShowHidden] = useState<boolean>(false);
   const [filteredData, setFilteredData] = useState<PropertyListing[]>([]);
 
+  // Whether we should include properties with missing square footages while filtering square footages
+  const [showMissingFtg, setShowMissingFtg] = useState<boolean>(true);
+
   const originalData = useRef<PropertyListing[]>([]);
 
   const sortFilteredData = useCallback((data: PropertyListing[]): PropertyListing[] => {
@@ -22,7 +25,7 @@ function App() {
     if (sortCriteria === "squareFootage") {
       sortedData.sort((a, b) => (b.squareFootage || 0) - (a.squareFootage || 0));
     } else if (sortCriteria === "date") {
-      sortedData.sort((a, b) => {
+       sortedData.sort((a, b) => {
         const firstDate = b.adDate ? new Date(b.adDate).getTime() : new Date(0).getTime();
         const secondDate = a.adDate ? new Date(a.adDate).getTime() : new Date(0).getTime();
         return firstDate - secondDate;
@@ -31,8 +34,12 @@ function App() {
     return sortedData;
   }, [sortCriteria]);
 
-  // Filter Function (Memoized)
-  const filterData = useCallback(() => {
+  const hydrateListing = useCallback((listing: PropertyListing) => {
+    listing.adDate = listing.adDate ? new Date(listing.adDate) : null;
+    listing.site = listing.site ?? "rightmove";
+  }, []);
+
+  const filterAndSortData = useCallback(() => {
     let result = originalData.current;
 
     if (filterDate) {
@@ -41,20 +48,14 @@ function App() {
     }
 
     if (minSquareFootage !== '' && !isNaN(Number(minSquareFootage))) {
-      result = result.filter(r => (r.squareFootage ?? -1) > Number(minSquareFootage));
+      const fallbackFootage = showMissingFtg ? 1000000 : -1;
+      result = result.filter(r => (r.squareFootage ?? fallbackFootage) > Number(minSquareFootage));
     }
 
     result = sortFilteredData(result);
     setFilteredData(result);
-  }, [filterDate, minSquareFootage, sortFilteredData]);
+  }, [filterDate, minSquareFootage, sortFilteredData, showMissingFtg]);
 
-  // Data Hydration
-  const hydrateListing = useCallback((listing: PropertyListing) => {
-    listing.adDate = listing.adDate ? new Date(listing.adDate) : null;
-    listing.site = listing.site ?? "rightmove";
-  }, []);
-
-  // Fetch Data on Mount
   useEffect(() => {
     const fetchData = async () => {
       const importedRightmoveData = await (await import('../../../storage/datasets/all-rightmove/000000032.json')).default.listings as PropertyListing[];
@@ -65,16 +66,24 @@ function App() {
 
       const importedData = [...importedRightmoveData, ...importedOnTheMarketData];
       originalData.current = importedData;
-      setFilteredData(sortFilteredData(importedData)); // Set filteredData with imported data, already sorted if sortCriteria exists
+      filterAndSortData();
     };
 
     fetchData();
-  }, [hydrateListing, sortFilteredData]);
+  }, [hydrateListing, filterAndSortData]);
+
+  // Trigger the filter and sort logic when relevant states change
+  useEffect(() => {
+    filterAndSortData();
+  }, [filterDate, minSquareFootage, sortCriteria, showMissingFtg]);
 
   return (
     <div>
-      <button onClick={() => setSortCriteria("squareFootage")}>Sort by Square Footage</button>
       <button onClick={() => setSortCriteria("date")}>Sort by Date</button>
+      <button onClick={() => setSortCriteria("squareFootage")}>Sort by Square Footage</button>
+      <button onClick={() => setShowMissingFtg(!showMissingFtg)}>
+        {showMissingFtg ? 'Hide' : 'Show'} missing sqFt
+      </button>
       <button onClick={() => setShowFavourite(!showFavourite)}>
         {showFavourite ? "Hide favourites" : "Only show favourites"}
       </button>
@@ -93,7 +102,7 @@ function App() {
         value={minSquareFootage}
         onChange={(e) => setMinSquareFootage(e.target.value)}
       />
-      <button onClick={filterData}>Apply Filters (Results: {filteredData.length})</button>
+      <button onClick={filterAndSortData}>Apply Filters (Results: {filteredData.length})</button>
       <div style={{ overflowY: 'scroll', maxHeight: '600px' }}>
         {filteredData.map((listing) => (
           <Listing
