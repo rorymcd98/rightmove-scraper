@@ -9,9 +9,10 @@ OPENAI_API_KEY=sk-************ // your API key
 
 Install with `npm install .`
 
-You can run each scraper with: 
+You can run each scraper in a separate terminal with: 
 
 `npm run scrape-rightmove`
+
 `npm run scrape-onthemarket`
 
 You can run the site with:
