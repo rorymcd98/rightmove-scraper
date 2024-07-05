@@ -21,7 +21,7 @@ function purgeRequestQueueFolder() {
 
 const SearchUrls = {
   [Category.general]:
-    "https://www.onthemarket.com/for-sale/property/regents-park/?max-price=575000&min-bedrooms=2&radius=4.0&retirement=false&shared-ownership=false",
+    "https://www.onthemarket.com/for-sale/property/regents-park/?max-price=575000&min-bedrooms=2&radius=4.0&retirement=false&shared-ownership=false&sort-field=update_date",
 };
 
 function createOnTheMarketIndexedUrl(baseUrl: string, index: number): string{
