@@ -1,5 +1,6 @@
-import { Configuration, Dataset} from "crawlee";
-import { createRightmoveListingFinder, createRightmoveListingScraper } from "./scrapers/rightmove-scrape";
+import { Configuration, Dataset } from "crawlee";
+import { createRightmoveListingScraper } from "./scrapers/rightmove/rightmove-scrape";
+import { createRightmoveListingFinder } from "./scrapers/rightmove/rightmove-index";
 import fs from "fs";
 import defaultUrl, { Category } from "./set-category";
 import { IndexPage, RightmoveListing } from "./types";
@@ -21,35 +22,35 @@ const SearchUrls = {
     "https://www.rightmove.co.uk/property-for-sale/find.html?locationIdentifier=USERDEFINEDAREA%5E%7B%22id%22%3A%228479230%22%7D&minBedrooms=2&maxPrice=575000&sortType=6&propertyTypes=&mustHave=&dontShow=&furnishTypes=&keywords=",
 };
 
-function createRightmoveIndexedUrl(baseUrl: string, index: number): string{
+function createRightmoveIndexedUrl(baseUrl: string, index: number): string {
   return baseUrl + `&index=${index}`
 }
 
-function createRightmoveIndexedUrls(baseUrl: string, startingIndex: number, endingIndex: number, step: number): string[]{
+function createRightmoveIndexedUrls(baseUrl: string, startingIndex: number, endingIndex: number, step: number): string[] {
   const outputUrls: string[] = [];
-  for(let i = startingIndex; i < endingIndex; i+=step){
+  for (let i = startingIndex; i < endingIndex; i += step) {
     outputUrls.push(createRightmoveIndexedUrl(baseUrl, i));
   }
   return outputUrls;
 }
 
-function buildRightmoveListingUrls(listingIds: string[]){
+function buildRightmoveListingUrls(listingIds: string[]) {
   return listingIds.map(id => `https://rightmove.co.uk/properties/${id}`);
 }
 
 const url = SearchUrls[defaultUrl];
 const runRightmoveScrape = async () => {
   const startingIndex = 0
-  const endingIndex = 50;
+  const endingIndex = 1;
   const step = 24; // rightmove default
   const indexPageUrls = createRightmoveIndexedUrls(url, startingIndex, endingIndex, step);
 
   // purgeRequestQueueFolder();
 
   // Find the pages
-  config.set("defaultDatasetId", "indexing-rightmove-"+defaultUrl);
-  config.set("defaultKeyValueStoreId", "indexing-rightmove-"+defaultUrl);
-  config.set("defaultRequestQueueId", "indexing-rightmove-"+Math.random().toString());
+  config.set("defaultDatasetId", "indexing-rightmove-" + defaultUrl);
+  config.set("defaultKeyValueStoreId", "indexing-rightmove-" + defaultUrl);
+  config.set("defaultRequestQueueId", "indexing-rightmove-" + Math.random().toString());
 
   var notBeforeDate = new Date();
   notBeforeDate.setDate(notBeforeDate.getDate() - 2);
@@ -65,21 +66,23 @@ const runRightmoveScrape = async () => {
   // const unscrapedIds = newListingIds.filter(x => !alreadyScrapedIds.has(x)); 
   const unscrapedIds = newListingIds;
 
-  config.set("defaultDatasetId", "scraping-rightmove-"+defaultUrl);
-  config.set("defaultKeyValueStoreId", "scraping-rightmove-"+defaultUrl);
-  config.set("defaultRequestQueueId", "scraping-rightmove-"+defaultUrl);
+  config.set("defaultDatasetId", "scraping-rightmove-" + defaultUrl);
+  config.set("defaultKeyValueStoreId", "scraping-rightmove-" + defaultUrl);
+  config.set("defaultRequestQueueId", (Date.now()).toString() + "scraping-rightmove-" + defaultUrl);
+  const allDataset = await Dataset.open<{ listings: RightmoveListing[] }>("all-rightmove");
+  const seenBeforeIds = new Set<number>();
+  (await allDataset.getData()).items.flatMap(x => x.listings).forEach(x => seenBeforeIds.add(x.listingId));
 
   const listingScraper = createRightmoveListingScraper();
-  const unscrapedListingUrls = buildRightmoveListingUrls(unscrapedIds.filter(x => x != undefined).map(x => x.listingId)); 
+  const unscrapedListingUrls = buildRightmoveListingUrls(unscrapedIds.filter(x => x != undefined).map(x => x.listingId));
   await listingScraper.run(unscrapedListingUrls);
 
   const allNewData = (await Dataset.getData<RightmoveListing>()).items;
-  if (allNewData.length == 0){
+  if (allNewData.length == 0) {
     console.log("No new Data for rightmove")
     return;
   }
-  const allDataset = await Dataset.open<{listings: RightmoveListing[]}>("all-rightmove");
-  await allDataset.pushData({listings: allNewData})
+  await allDataset.pushData({ listings: allNewData })
 };
 
 runRightmoveScrape();

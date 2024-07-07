@@ -1,6 +1,8 @@
+import { StationName } from "./transport";
+
 export type Tenure = "freehold" | "leasehold" | "share of freehold" | "shared ownership" | "none" | "other";
 
-export interface ListingDebug{
+export interface ListingDebug {
   footageResolution: "listed" | "in-text" | "gpt-image" | "unresolved";
 }
 
@@ -19,7 +21,16 @@ export interface PropertyListing {
   imageUrls: string[];
   debug: ListingDebug;
   site: Sites | null;
+  nearestStations: NearestStation[] | null; // Contains debug information at [1]
 }
+
+export type NearestStation = {
+  stationName: string | null;
+  distanceMiles: DistanceMiles;
+  rawText: string;
+}
+
+type DistanceMiles = number;
 
 export interface RightmoveListing extends PropertyListing {
   site: "rightmove";
@@ -44,3 +55,16 @@ export type IndexPage = {
   dateFound: Date;
   listings: IndexedListing[];
 };
+
+export type LineName =
+  "Piccadilly" |
+  "Metropolitan" |
+  "Circle" |
+  "Hammersmith City" |
+  "Northern" |
+  "Bakerloo" |
+  "Jubilee" |
+  "Waterloo City" |
+  "Central" |
+  "Victoria" |
+  "District";

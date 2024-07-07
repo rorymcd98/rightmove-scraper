@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { PropertyListing } from '../../types';
+import { StationName, stations } from "../../transport";
+
 interface ListingProps {
   listing: PropertyListing;
   showHidden: boolean;
@@ -8,17 +10,15 @@ interface ListingProps {
 
 const Listing: React.FC<ListingProps> = ({ listing, showHidden, showFavourite }) => {
 
-  //create states for the buttons
   const [favourite, setFavourite] = useState<boolean>(false);
   const [hide, setHide] = useState<boolean>(false);
 
-  // check if listing is already in local storage
   useEffect(() => {
-    if(localStorage.getItem('favouriteListings')) {
+    if (localStorage.getItem('favouriteListings')) {
       let favouriteListings = JSON.parse(localStorage.getItem('favouriteListings') || '[]');
       setFavourite(favouriteListings.includes(listing.listingId));
     }
-    if(localStorage.getItem('hiddenListings')) {
+    if (localStorage.getItem('hiddenListings')) {
       let hiddenListings = JSON.parse(localStorage.getItem('hiddenListings') || '[]');
       setHide(hiddenListings.includes(listing.listingId));
     }
@@ -27,8 +27,7 @@ const Listing: React.FC<ListingProps> = ({ listing, showHidden, showFavourite })
   const handleFavourite = () => {
     let favouriteListings = JSON.parse(localStorage.getItem('favouriteListings') || '[]');
 
-    //add or remove listing to/from favourites
-    if(favourite) {
+    if (favourite) {
       setFavourite(false);
       favouriteListings.splice(favouriteListings.indexOf(listing.listingId), 1);
     } else {
@@ -36,15 +35,13 @@ const Listing: React.FC<ListingProps> = ({ listing, showHidden, showFavourite })
       favouriteListings.push(listing.listingId);
     }
 
-    //save the changes in local storage
     localStorage.setItem('favouriteListings', JSON.stringify(favouriteListings));
   }
 
   const handleHide = () => {
     let hiddenListings = JSON.parse(localStorage.getItem('hiddenListings') || '[]');
 
-    //add or remove listing to/from hidden
-    if(hide) {
+    if (hide) {
       setHide(false);
       hiddenListings.splice(hiddenListings.indexOf(listing.listingId), 1);
     } else {
@@ -52,37 +49,44 @@ const Listing: React.FC<ListingProps> = ({ listing, showHidden, showFavourite })
       hiddenListings.push(listing.listingId);
     }
 
-    //save the changes in local storage
     localStorage.setItem('hiddenListings', JSON.stringify(hiddenListings));
   }
 
-  //hide the listing from view
-  if((hide && !showHidden) || (!favourite && showFavourite)) return null;
+  if ((hide && !showHidden) || (!favourite && showFavourite)) return null;
 
-  return <div style={{border: '1px solid #ddd', margin: '10px', padding: '10px'}}>
-  <h2>{listing.title}</h2>
-  <div style={{display: 'flex', overflowX: 'auto', maxHeight: '200px'}}>
-    {listing.imageUrls.map((imageUrl, index) =>
-      <img key={index} src={imageUrl} alt="listing" style={{maxHeight: '200px', marginRight: '10px'}}/>
-    )}
-  </div>
-  <div style={{display: "flex", flexDirection: "row", justifyContent: "center", alignItems: "center"}}>
-    <span>
-      <p>{listing.location}</p>
-      <p>{listing.description}</p>
-      <p>Square Footage:{listing.squareFootage}</p>
-      <p>Price: {Number(listing.price).toLocaleString('en-GB', { style: 'currency', currency: 'GBP' })}</p>
-      <p>Tenure: {listing.tenure}</p>
-      <p>Date: {listing.adDate?.toLocaleDateString()}</p>
-      <p>Site: {listing.site}</p>
-      <a href={listing.url} target="_blank" rel="noopener noreferrer">View more</a>
-    </span>
-    <span>
-      <button onClick={handleHide}>{hide ? "Unhide" : "Hide"}</button>
-      <button onClick={handleFavourite}>{favourite ? "Unfavourite" : "Favourite"}</button>
-    </span>
-  </div>
-</div>
+  return (
+    <div style={{ border: '1px solid #ddd', margin: '10px', padding: '10px' }}>
+      <h2>{listing.title}</h2>
+      <div style={{ display: 'flex', overflowX: 'auto', maxHeight: '200px' }}>
+        {listing.imageUrls.map((imageUrl, index) =>
+          <img key={index} src={imageUrl} alt="listing" style={{ maxHeight: '200px', marginRight: '10px' }} />
+        )}
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'space-evenly', alignItems: 'center', marginTop: '10px' }}>
+        <div style={{ paddingRight: '10px' }}>
+          <p>Square Footage: {listing.squareFootage}</p>
+          <p>Price: {Number(listing.price).toLocaleString('en-GB', { style: 'currency', currency: 'GBP' })}</p>
+          <p>Tenure: {listing.tenure}</p>
+        </div>
+        <div style={{ textAlign: 'center' }}>
+          <p>Date: {listing.adDate?.toLocaleDateString()}</p>
+          <p>Site: {listing.site}</p>
+          <a href={listing.url} target="_blank" rel="noopener noreferrer">View More</a>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", textAlign: "left" }}>
+          {listing.nearestStations?.filter(x => x != null && x.stationName != null).map(x => (
+            <div>
+              {x.stationName} ({x.distanceMiles}mi.):  {stations[x.stationName as StationName]?.join(", ")}
+            </div>
+          ))}
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", textAlign: 'right', paddingLeft: '10px' }}>
+          <button onClick={handleHide}>{hide ? "Unhide" : "Hide"}</button>
+          <button onClick={handleFavourite} style={{ marginLeft: '10px' }}>{favourite ? "Unfavourite" : "Favourite"}</button>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default Listing;
