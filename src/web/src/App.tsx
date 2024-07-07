@@ -2,9 +2,44 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import './App.css';
 import Listing from './Listing';
 import { LineName, PropertyListing, RightmoveListing } from '../../types';
-import { StationName } from '../../transport';
+import { stations } from '../../transport';
 
 type SortCriteria = "date" | "squareFootage";
+type LineNameMap = Map<LineName, number>;
+
+// If there is a station with a defined name
+// If that station is on a line included in a positive (valid) filter
+// If the distance on the filter exceeds the actual distance
+// We found a match - show the property!
+function filterDataByDistances(filter: LineNameMap, data: PropertyListing[]): PropertyListing[] {
+  const posStationFilters: LineNameMap = new Map();
+  for (const entry of filter.entries()) {
+    if (entry[1] > 0) {
+      posStationFilters.set(entry[0], entry[1]);
+    }
+  }
+
+  if (posStationFilters.size === 0) {
+    return data;
+  }
+
+  return data.filter(property => {
+    if (!property.nearestStations) return false;
+    return property.nearestStations.some(station => {
+      if (!station.stationName) return false;
+      const lines = stations[station.stationName];
+      return lines.some(line => {
+        const distance = posStationFilters.get(line); // Use posStationFilters instead of filter
+        if (distance === undefined) return false;
+        if (station.distanceMiles >= 0 && distance >= station.distanceMiles) {
+          return true;
+        }
+        return false;
+      });
+    });
+  });
+}
+
 
 function App() {
   const [filterDate, setFilterDate] = useState(() => localStorage.getItem('filterDate') || '');
@@ -14,19 +49,26 @@ function App() {
   const [showHidden, setShowHidden] = useState<boolean>(() => JSON.parse(localStorage.getItem('showHidden') || 'false'));
   const [filteredData, setFilteredData] = useState<PropertyListing[]>([]);
   const [showMissingFtg, setShowMissingFtg] = useState<boolean>(() => JSON.parse(localStorage.getItem('showMissingFtg') || 'true'));
-  const [stationDistanceFilters, setStationDistanceFilters] = useState<Record<LineName, Number>>({
-    "Bakerloo": -1,
-    "Central": -1,
-    "Circle": -1,
-    "District": -1,
-    "Hammersmith City": -1,
-    "Jubilee": -1,
-    "Metropolitan": -1,
-    "Northern": -1,
-    "Piccadilly": -1,
-    "Victoria": -1,
-    "Waterloo City": -1,
+  const [stationDistanceFilters, setStationDistanceFilters] = useState<LineNameMap>(() => {
+    const savedFilters = localStorage.getItem('stationDistanceFilters');
+    if (savedFilters) {
+      return new Map(JSON.parse(savedFilters));
+    }
+    return new Map([
+      ["Bakerloo", 0],
+      ["Central", 0],
+      ["Circle", 0],
+      ["District", 0],
+      ["Hammersmith City", 0],
+      ["Jubilee", 0],
+      ["Metropolitan", 0],
+      ["Northern", 0],
+      ["Piccadilly", 0],
+      ["Victoria", 0],
+      ["Waterloo City", 0],
+    ]);
   });
+  const [showStationDropdown, setShowStationDropdown] = useState<boolean>(false);
 
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [itemsPerPage] = useState<number>(10);
@@ -55,22 +97,24 @@ function App() {
   }, []);
 
   const filterAndSortData = useCallback(() => {
-    let result = originalData.current;
+    let data = originalData.current;
+
+    data = filterDataByDistances(stationDistanceFilters, data);
 
     if (filterDate) {
       const date = new Date(filterDate);
-      result = result.filter(item => new Date(item.adDate ?? new Date(0)) > date);
+      data = data.filter(item => new Date(item.adDate ?? new Date(0)) > date);
     }
 
     if (minSquareFootage !== '' && !isNaN(Number(minSquareFootage))) {
       const fallbackFootage = showMissingFtg ? 1000000 : -1;
-      result = result.filter(r => (r.squareFootage ?? fallbackFootage) > Number(minSquareFootage));
+      data = data.filter(r => (r.squareFootage ?? fallbackFootage) > Number(minSquareFootage));
     }
 
-    result = sortFilteredData(result);
-    setFilteredData(result);
+    data = sortFilteredData(data);
+    setFilteredData(data);
     setCurrentPage(1); // Reset to the first page after filtering
-  }, [filterDate, minSquareFootage, sortFilteredData, showMissingFtg]);
+  }, [filterDate, minSquareFootage, sortFilteredData, showMissingFtg, stationDistanceFilters]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -117,6 +161,10 @@ function App() {
     localStorage.setItem('showMissingFtg', JSON.stringify(showMissingFtg));
   }, [showMissingFtg]);
 
+  useEffect(() => {
+    localStorage.setItem('stationDistanceFilters', JSON.stringify(Array.from(stationDistanceFilters.entries())));
+  }, [stationDistanceFilters]);
+
   const handlePageChange = (newPage: number) => {
     if (newPage > 0 && newPage <= Math.ceil(filteredData.length / itemsPerPage)) {
       setCurrentPage(newPage);
@@ -130,16 +178,40 @@ function App() {
     currentPage * itemsPerPage
   );
 
-  const childItemStyle = {
-    backgroundColor: 'rgb(200, 200, 200)',
-    borderRadius: '10px',
-    margin: '5px',
+  const handleInputChange = (lineName: LineName, value: string) => {
+    const newValue = Math.min(Math.max(parseFloat(value), 0), 1);
+
+    const oldValue = stationDistanceFilters.get(lineName);
+    if (oldValue == newValue) return;
+
+    const newFilters = new Map(stationDistanceFilters);
+    newFilters.set(lineName, newValue);
+    setStationDistanceFilters(newFilters);
   };
 
   return (
     <>
       <div style={{ display: "inline-flex", flexDirection: "row", width: "100%", justifyContent: "space-around" }}>
         <div>
+          <button onClick={() => setShowStationDropdown(!showStationDropdown)}>
+            {showStationDropdown ? "Hide stations" : "Show stations"}
+          </button>
+          {showStationDropdown &&
+            <div style={{ position: "fixed", display: "flex", flexDirection: "column", textAlign: "left", backgroundColor: "gray", padding: "5px" }}>
+              {[...stationDistanceFilters.entries()].map(([lineName, distance]) => (
+                <div key={lineName} style={{ display: "flex", alignItems: "center", margin: "5px 0", opacity: distance > 0 ? "100%" : "20%" }}>
+                  <span style={{ flexGrow: 1 }}>{lineName.slice(0, 12).trim()}:</span>
+                  <input
+                    style={{ marginLeft: '5px', width: "3rem" }}
+                    type="number"
+                    value={distance}
+                    onChange={(e) => handleInputChange(lineName, e.target.value)}
+                    step="0.1"
+                  />
+                </div>
+              ))}
+            </div>
+          }
           <label htmlFor="sortDropdown">Sort by: </label>
           <select
             id="sortDropdown"
@@ -203,7 +275,7 @@ function App() {
         <button onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages}>Next</button>
       </div>
       <div>
-        <div style={{ overflowY: 'scroll', maxHeight: '600px' }}>
+        <div style={{ overflowY: 'scroll' }}>
           {paginatedData.map((listing) => (
             <Listing
               key={listing.listingId}

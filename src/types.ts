@@ -25,7 +25,7 @@ export interface PropertyListing {
 }
 
 export type NearestStation = {
-  stationName: string | null;
+  stationName: StationName | null;
   distanceMiles: DistanceMiles;
   rawText: string;
 }
