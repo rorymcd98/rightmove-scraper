@@ -72,7 +72,7 @@ function App() {
   const [showStationDropdown, setShowStationDropdown] = useState<boolean>(false);
 
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const [itemsPerPage] = useState<number>(10);
+  const itemsPerPage = 25;
 
   const originalData = useRef<PropertyListing[]>([]);
 

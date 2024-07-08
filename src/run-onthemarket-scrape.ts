@@ -1,7 +1,7 @@
 import { Configuration, Dataset } from "crawlee";
 import { createOnTheMarketListingScraper } from "./scrapers/onthemarket/onthemarket-scrape";
 import { createOnTheMarketListingFinder } from "./scrapers/onthemarket/onthemarket-index";
-import fs from "fs";
+
 import defaultCategoryName, { Category } from "./set-category";
 import { IndexPage, OnTheMarketListing } from "./types";
 import { filterUnique } from "./scrapers/backport/filter-unique";
@@ -78,7 +78,7 @@ const runOnTheMarketScrape = async () => {
   await listingScraper.run(unscrapedListingUrls);
 
   const allNewData = (await Dataset.getData<OnTheMarketListing>()).items.filter(x => !seenBeforeIds.has(x.listingId));
-  console.log(allNewData.length + "new results")
+  console.log(allNewData.length + " new results")
   const allOldData = (await allDataset.getData()).items.flatMap(x => x.listings);
   await allDataset.pushData({ listings: allNewData })
 

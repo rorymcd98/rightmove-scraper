@@ -1,10 +1,10 @@
 // For more information, see https://crawlee.dev/
 import { PlaywrightCrawler, Dataset, Log, Request } from "crawlee";
 import { ElementHandle, Page } from "playwright";
-import { IndexPage, IndexedListing, ListingDebug, ZooplaListing, Tenure } from "../types";
-import { findSquareFootageNlpAsync } from "./nlp-sqft";
-import { getSquareFootageFromGptAsync } from "./gpt-sqft";
-import { findAllZooplaImagesAsync } from "./find-images";
+import { IndexPage, IndexedListing, ListingDebug, ZooplaListing, Tenure } from "../../types";
+import { findSquareFootageNlpAsync } from "../nlp-sqft";
+import { getSquareFootageFromGptAsync } from "../gpt-sqft";
+import { findAllZooplaImagesAsync } from "../find-images";
 
 
 ///////////// Scrape data from individual listings
@@ -112,17 +112,7 @@ async function findTenureBackupAsync(page: Page): Promise<Tenure | undefined> {
       .filter(text => text === 'freehold' || text === 'leasehold' || text === 'share of freehold' || text === 'shared ownership'); // strict equality check
   });
 
-  switch (tenures[0]) {
-    case "freehold":
-    case "share of freehold":
-    case "leasehold":
-    case "shared ownership":
-      return tenures[0];
-    case "share":
-      return "share of freehold";
-    default:
-      return undefined
-  }
+  return tenures[0];
 }
 
 async function findTenureAsync(page: Page, log: Log): Promise<Tenure> {
@@ -221,6 +211,7 @@ export function createZooplaListingScraper(listingIdToDateMap: Map<number, Date>
           footageResolution: squareFootageValue?.[1] ?? "unresolved",
         },
         site: "zoopla",
+        nearestStations: [],
       };
 
       // Push the list of urls to the dataset
@@ -244,26 +235,13 @@ async function getDateFromListingEleAsync(listing: ElementHandle<SVGElement | HT
 }
 
 // Find all the listings on page 1, 2, 3, 4... 
-export function createZooplaListingFinder(notBefore: Date) {
+export function createZooplaListingFinder() {
   const crawler = new PlaywrightCrawler({
+    persistCookiesPerSession: true,
     maxConcurrency: 1,
     async requestHandler({ request, page, log }) {
       // Determine if the last listing is too old
-      const listings = await page.$$(".dkr2t82");
-      const lastListingDate = await getDateFromListingEleAsync(listings.at(2)!);
-      if (lastListingDate == undefined || lastListingDate < notBefore) {
-        log.info("Reached listings which were too old, returning. (This assumes we're searching from newest first)");
-
-        const indexOfCurrentRequest = crawler.requestList?.requests.map(x => x.url).indexOf(request.url);
-
-        // Make the request list only go up to indexOfCurrentRequest
-        let requestDict = crawler.requestList?.requests;
-        if (indexOfCurrentRequest !== -1 && requestDict != undefined) {
-          requestDict = requestDict.slice(0, indexOfCurrentRequest);
-        }
-
-        return;
-      }
+      const listings = await page.$$(".dkr2t83");
 
       log.info(`Getting results for url ${request.loadedUrl?.split(".co.uk")[1]}`)
       const results: IndexedListing[] = [];

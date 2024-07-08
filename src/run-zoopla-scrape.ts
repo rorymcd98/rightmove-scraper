@@ -1,84 +1,97 @@
-// //This one doesn't really work
-// import { Configuration, Dataset} from "crawlee";
-// import { createZooplaListingFinder, createZooplaListingScraper } from "./scrapers/zoopla-scrape";
-// import fs from "fs";
-// import defaultCategoryName, { Category } from "./set-category";
-// import { IndexPage, ZooplaListing } from "./types";
-// import { list } from "blessed";
+//This one doesn't really work
+import { Configuration, Dataset } from "crawlee";
+import { createZooplaListingFinder, createZooplaListingScraper } from "./scrapers/zoopla/zoopla-scrape";
+import defaultCategoryName, { Category } from "./set-category";
+import { IndexPage, ZooplaListing } from "./types";
+import defaultUrl from "./set-category";
+import { filterUnique } from "./scrapers/backport/filter-unique";
 
-// const config = Configuration.getGlobalConfig();
-// config.set("purgeOnStart", false);
+const config = Configuration.getGlobalConfig();
+config.set("purgeOnStart", false);
+
+const SearchUrls = {
+  [Category.general]:
+    "https://www.zoopla.co.uk/for-sale/property/regents-park/?beds_min=2&polyenc=gvhyH~uQ~VtkUuYv_CyyAvXqdDc%7B%40mtCa%60EuqAylDua%40eoEuAoyCti%40myCltC%7DpC~qG%60%7B%40l%7C%40jfD&price_max=575000&q=Regent%27s%20Park%2C%20London&radius=0&results_sort=newest_listings&search_source=for-sale",
+};
+
+function createZooplaIndexedUrl(baseUrl: string, index: number): string {
+  return baseUrl + `&pn=${index}`
+}
+
+function createZooplaIndexedUrls(baseUrl: string, startingIndex: number, endingIndex: number, step: number): string[] {
+  const outputUrls: string[] = [];
+  for (let i = startingIndex; i < endingIndex; i += step) {
+    outputUrls.push(createZooplaIndexedUrl(baseUrl, i));
+  }
+  return outputUrls;
+}
+
+function buildZooplaListingUrls(listingIds: string[]) {
+  return listingIds.map(id => `https://zoopla.co.uk/for-sale/details/${id}`);
+}
+
+const url = SearchUrls[defaultCategoryName];
+const runZooplaScrape = async () => {
+  const startingIndex = 1;
+  const endingIndex = 10;
+  const step = 1; // zoopla default
+  const indexPageUrls = createZooplaIndexedUrls(url, startingIndex, endingIndex, step);
+
+  // purgeRequestQueueFolder();
+
+  // Find the pages
+  config.set("defaultDatasetId", "indexing-zoopla-" + defaultCategoryName);
+  config.set("defaultKeyValueStoreId", "indexing-zoopla-" + defaultCategoryName);
+  config.set("defaultRequestQueueId", Date.now() + "-indexing-zoopla");
 
 
-// function purgeRequestQueueFolder() {
-//   const path = "./storage/request_queues/";
-//   const files = fs.readdirSync(path);
-//   for (const file of files) {
-//     fs.unlinkSync(path + file);
-//   }
-// }
+  const crawler = createZooplaListingFinder();
+  console.log(indexPageUrls)
+  await crawler.run(indexPageUrls);
 
-// const SearchUrls = {
-//   [Category.general]:
-//     "https://www.zoopla.co.uk/for-sale/property/regents-park/?beds_min=2&price_max=475000&q=Regent%27s+Park%2C+London&radius=0&results_sort=newest_listings&search_source=for-sale&hidePoly=false&polyenc=gvhyH%7EuQ%7EVtkUuYv_CyyAvXqdDc%7B%40mtCa%60EuqAylDua%40eoEuAoyCti%40myCltC%7DpC%7EqG%60%7B%40l%7C%40jfD",
-// };
+  const newListings = (await Dataset.getData<IndexPage>()).items.flatMap(x => x.listings);
+  const allDataset = await Dataset.open<{ listings: ZooplaListing[] }>("all-zoopla");
+  const allOldData = (await allDataset.getData()).items.flatMap(x => x.listings);
 
-// function createZooplaIndexedUrl(baseUrl: string, index: number): string{
-//   return baseUrl + `&pn=${index}`
-// }
+  const listingIdToAdDate = new Map<number, Date>();
+  for (const listing of newListings) {
+    listingIdToAdDate.set(parseInt(listing.listingId), listing.listingDate ? new Date(listing.listingDate) : new Date());
+  }
 
-// function createZooplaIndexedUrls(baseUrl: string, startingIndex: number, endingIndex: number, step: number): string[]{
-//   const outputUrls: string[] = [];
-//   for(let i = startingIndex; i < endingIndex; i+=step){
-//     outputUrls.push(createZooplaIndexedUrl(baseUrl, i));
-//   }
-//   return outputUrls;
-// }
+  config.set("defaultDatasetId", "scraping-zoopla-" + defaultUrl);
+  config.set("defaultKeyValueStoreId", "scraping-zoopla-" + defaultUrl);
+  config.set("defaultRequestQueueId", (Date.now()).toString() + "scraping-zoopla-" + defaultUrl);
+  const seenBeforeIds = new Set<number>();
+  (await allDataset.getData()).items.flatMap(x => x.listings).forEach(x => seenBeforeIds.add(x.listingId));
 
-// function buildZooplaListingUrls(listingIds: string[]){
-//   return listingIds.map(id => `https://zoopla.co.uk/for-sale/details/${id}`);
-// }
+  const unscrapedIds = newListings.map(x => x.listingId).filter(x => !seenBeforeIds.has(Number(x)));
 
-// const url = SearchUrls[defaultCategoryName];
-// const runZooplaScrape = async () => {
-//   const startingIndex = 1;
-//   const endingIndex = 2;
-//   const step = 1; // zoopla default
-//   const indexPageUrls = createZooplaIndexedUrls(url, startingIndex, endingIndex, step);
+  const listingScraper = createZooplaListingScraper(listingIdToAdDate);
+  const unscrapedListingUrls = buildZooplaListingUrls(unscrapedIds.filter(x => x != undefined));
 
-//   // purgeRequestQueueFolder();
+  const extraHTTPHeaders = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+    'Accept-Language': 'en-US,en;q=0.9',
+    'Accept-Encoding': 'gzip, deflate, br'
+  }
 
-//   // Find the pages
-//   config.set("defaultDatasetId", "indexing-zoopla-"+defaultCategoryName);
-//   config.set("defaultKeyValueStoreId", "indexing-zoopla-"+defaultCategoryName);
-//   // config.set("defaultRequestQueueId", "indexing-"+defaultUrl);
+  const requests = unscrapedListingUrls.map(url => ({
+    url,
+    headers: extraHTTPHeaders,
+  }));
 
-//   var notBeforeDate = new Date();
-//   notBeforeDate.setDate(notBeforeDate.getDate() - 21);
+  await listingScraper.run(requests); // list of urls -> list of requests
 
-//   const crawler = createZooplaListingFinder(notBeforeDate);
-//   console.log(indexPageUrls)
-//   await crawler.run(indexPageUrls);
+  const allNewData = (await Dataset.getData<ZooplaListing>()).items.filter(x => !seenBeforeIds.has(x.listingId));
+  console.log(allNewData.length + " new results");
+  const oldCurrentDataset = await Dataset.open<{ listings: ZooplaListing[] }>("current-zoopla");
+  await oldCurrentDataset.drop();
 
-//   const newListings = (await Dataset.getData<IndexPage>()).items.flatMap(x => x.listings).filter(x => x.);
+  const currentDataset = await Dataset.open<{ listings: ZooplaListing[] }>("current-zoopla");
+  const currentData = filterUnique([...allOldData, ...allNewData]);
 
-//   const listingIdToAdDate = new Map<number, Date>();
-//   for(const listing of newListings){
-//     listingIdToAdDate.set(parseInt(listing.listingId), listing.listingDate ? new Date(listing.listingDate) : new Date(0));
-//   }
+  await allDataset.pushData({ listings: allNewData })
+  await currentDataset.pushData({ listings: currentData });
+};
 
-//   config.set("defaultDatasetId", "scraping-zoopla-"+defaultCategoryName);
-//   config.set("defaultKeyValueStoreId", "scraping-zoopla-"+defaultCategoryName);
-//   config.set("defaultRequestQueueId", "scraping-zoopla-"+defaultCategoryName);
-
-//   const listingScraper = createZooplaListingScraper(listingIdToAdDate);
-//   const unscrapedListingUrls = buildZooplaListingUrls(newListings.map(x => x.listingId));
-
-//   await listingScraper.run(unscrapedListingUrls);
-
-//   const allData = (await Dataset.getData<ZooplaListing>()).items;
-//   const allDataset = await Dataset.open<{listings: ZooplaListing[]}>("all-zoopla");
-//   await allDataset.pushData({listings: allData})
-// };
-
-// runZooplaScrape();
+runZooplaScrape();

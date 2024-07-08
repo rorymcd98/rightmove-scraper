@@ -9,8 +9,9 @@
     "lint": "eslint --ext .ts .",
     "scrape-all": "concurrently \"npm run scrape-rightmove\" \"npm run scrape-onthemarket\"",
     "scrape-rightmove": "tsx src/run-rightmove-scrape.ts",
-    "web": "npm run dev --prefix ./src/web",
     "scrape-onthemarket": "tsx src/run-onthemarket-scrape.ts",
+    "scrape-zoopla": "tsx src/run-zoopla-scrape.ts",
+    "web": "npm run dev --prefix ./src/web",
     "parse": "ts-node-esm -T src/parse-prices.ts",
     "cli": "ts-node-esm -T src/run-cli.ts"
   },

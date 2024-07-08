@@ -1,7 +1,7 @@
 import { Configuration, Dataset } from "crawlee";
 import { createRightmoveListingScraper } from "./scrapers/rightmove/rightmove-scrape";
 import { createRightmoveListingFinder } from "./scrapers/rightmove/rightmove-index";
-import fs from "fs";
+
 import defaultUrl, { Category } from "./set-category";
 import { IndexPage, RightmoveListing } from "./types";
 import { filterUnique } from "./scrapers/backport/filter-unique";
@@ -76,7 +76,7 @@ const runRightmoveScrape = async () => {
   await listingScraper.run(unscrapedListingUrls);
 
   const allNewData = (await Dataset.getData<RightmoveListing>()).items.filter(x => !seenBeforeIds.has(x.listingId));
-  console.log(allNewData.length + "new results")
+  console.log(allNewData.length + " new results")
   const oldCurrentDataset = await Dataset.open<{ listings: RightmoveListing[] }>("current-rightmove");
   await oldCurrentDataset.drop();
 
