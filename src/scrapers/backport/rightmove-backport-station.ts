@@ -1,12 +1,12 @@
 import { Configuration, Dataset, PlaywrightCrawler } from "crawlee";
-import { getIdFromUrl } from "../onthemarket/onthemarket-scrape";
+import { getIdFromUrl } from "../rightmove/rightmove-scrape";
 import defaultCategoryName from "../../set-category";
-import { NearestStation, OnTheMarketListing } from "../../types";
-import { getNearestStationsAsync } from "../onthemarket/onthemarket-stations";
+import { NearestStation, RightmoveListing } from "../../types";
+import { getNearestStationsAsync } from "../rightmove/rightmove-stations";
 
 // copied this because it's easier
-function buildOnTheMarketListingUrls(listingIds: string[]) {
-    return listingIds.map(id => `https://onthemarket.com/details/${id}/`);
+function buildRightmoveListingUrls(listingIds: string[]) {
+    return listingIds.map(id => `https://rightmove.co.uk/properties/${id}`);
 }
 
 const config = Configuration.getGlobalConfig();
@@ -15,32 +15,29 @@ type BackportStations = { listingId: number, nearestStations: NearestStation[] }
 
 async function Main() {
 
-    const allDataset = await Dataset.open<{ listings: OnTheMarketListing[] }>("all-onthemarket");
+    const allDataset = await Dataset.open<{ listings: RightmoveListing[] }>("all-rightmove");
     const allListings = await allDataset.getData();
 
-    config.set("defaultRequestQueueId", "backport-stations-onthemarket-" + defaultCategoryName);
-    config.set("defaultDatasetId", "backport-stations-onthemarket-" + defaultCategoryName);
+    config.set("defaultRequestQueueId", "backport-stations-rightmove-" + defaultCategoryName);
+    config.set("defaultDatasetId", "backport-stations-rightmove-" + defaultCategoryName);
     const backporter = createNearestStationsBackporter();
 
-    const urls = buildOnTheMarketListingUrls(allListings.items.flatMap(x => x.listings).map(x => x.listingId.toString()));
+    const urls = buildRightmoveListingUrls(allListings.items.flatMap(x => x.listings).map(x => x.listingId.toString()));
     backporter.run(urls)
-    const allNewData = (await Dataset.getData<BackportStations>()).items;
-    // const backportDataset = await Dataset.open<{ listings: BackportStations[] }>("backport-stations-onthemarket-general");
-    // await backportDataset.pushData({ listings: allNewData })
 }
 
 async function CreateNewDataset() {
-    const backportDataset = await Dataset.open<BackportStations>("backport-stations-onthemarket-" + defaultCategoryName);
+    const backportDataset = await Dataset.open<BackportStations>("backport-stations-rightmove-" + defaultCategoryName);
     const backportMap = new Map<Number, NearestStation[]>();
 
     (await backportDataset.getData()).items.forEach(x => {
         backportMap.set(x.listingId, x.nearestStations);
     });
 
-    const allDataset = await Dataset.open<{ listings: OnTheMarketListing[] }>("all-onthemarket");
+    const allDataset = await Dataset.open<{ listings: RightmoveListing[] }>("all-rightmove");
     const allListings = (await allDataset.getData()).items.flatMap(x => x.listings);
 
-    const uniqueListings = new Map<number, OnTheMarketListing>();
+    const uniqueListings = new Map<number, RightmoveListing>();
 
 
     for (const listing of allListings) {
@@ -51,13 +48,13 @@ async function CreateNewDataset() {
         const nearest = backportMap.get(x.listingId);
         x.nearestStations = nearest ?? null;
     }
-    const allDataset2 = await Dataset.open<{ listings: OnTheMarketListing[] }>("all-onthemarket2");
+    const allDataset2 = await Dataset.open<{ listings: RightmoveListing[] }>("all-rightmove2");
     await allDataset2.pushData({ listings: Array.from(uniqueListings.values()) })
 
 }
 
 // Main();
-// CreateNewDataset();
+CreateNewDataset();
 
 function createNearestStationsBackporter() {
     const crawler = new PlaywrightCrawler({

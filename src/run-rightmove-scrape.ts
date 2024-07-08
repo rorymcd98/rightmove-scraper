@@ -45,12 +45,10 @@ const runRightmoveScrape = async () => {
   const step = 24; // rightmove default
   const indexPageUrls = createRightmoveIndexedUrls(url, startingIndex, endingIndex, step);
 
-  // purgeRequestQueueFolder();
-
   // Find the pages
   config.set("defaultDatasetId", "indexing-rightmove-" + defaultUrl);
   config.set("defaultKeyValueStoreId", "indexing-rightmove-" + defaultUrl);
-  config.set("defaultRequestQueueId", "indexing-rightmove-" + Math.random().toString());
+  config.set("defaultRequestQueueId", Date.now() + "-indexing-rightmove");
 
   var notBeforeDate = new Date();
   notBeforeDate.setDate(notBeforeDate.getDate() - 2);
@@ -59,30 +57,28 @@ const runRightmoveScrape = async () => {
   console.log(indexPageUrls)
   await crawler.run(indexPageUrls);
 
-  // const alreadyScrapedDataset = await Dataset.open<string[]>(alreadyScrapedDbName);
-  // const alreadyScrapedIds = new Set<string>((await (alreadyScrapedDataset).getData()).items.flatMap(x => x));
+  const newListings = (await Dataset.getData<IndexPage>()).items.flatMap(x => x.listings);
+  const allDataset = await Dataset.open<{ listings: RightmoveListing[] }>("all-rightmove");
+  const allOldData = (await allDataset.getData()).items.flatMap(x => x.listings);
 
-  const newListingIds = (await Dataset.getData<IndexPage>()).items.flatMap(x => x.listings);
-  // const unscrapedIds = newListingIds.filter(x => !alreadyScrapedIds.has(x)); 
-  const unscrapedIds = newListingIds;
 
   config.set("defaultDatasetId", "scraping-rightmove-" + defaultUrl);
   config.set("defaultKeyValueStoreId", "scraping-rightmove-" + defaultUrl);
   config.set("defaultRequestQueueId", (Date.now()).toString() + "scraping-rightmove-" + defaultUrl);
-  const allDataset = await Dataset.open<{ listings: RightmoveListing[] }>("all-rightmove");
   const seenBeforeIds = new Set<number>();
   (await allDataset.getData()).items.flatMap(x => x.listings).forEach(x => seenBeforeIds.add(x.listingId));
 
+  const unscrapedIds = newListings.map(x => x.listingId).filter(x => !seenBeforeIds.has(Number(x)));
+
   const listingScraper = createRightmoveListingScraper();
-  const unscrapedListingUrls = buildRightmoveListingUrls(unscrapedIds.filter(x => x != undefined).map(x => x.listingId));
+  const unscrapedListingUrls = buildRightmoveListingUrls(unscrapedIds.filter(x => x != undefined));
   await listingScraper.run(unscrapedListingUrls);
 
   const allNewData = (await Dataset.getData<RightmoveListing>()).items;
-  if (allNewData.length == 0) {
-    console.log("No new Data for rightmove")
-    return;
-  }
+  const archiveDataset = await Dataset.open<{ listings: RightmoveListing[] }>(Date.now() + "-all-rightmove");
+
   await allDataset.pushData({ listings: allNewData })
+  await archiveDataset.pushData({ listings: [...allOldData, ...allNewData] });
 };
 
 runRightmoveScrape();

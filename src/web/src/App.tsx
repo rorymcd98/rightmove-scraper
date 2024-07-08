@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import './App.css';
 import Listing from './Listing';
-import { LineName, PropertyListing, RightmoveListing } from '../../types';
+import { LineName, PropertyListing } from '../../types';
 import { stations } from '../../transport';
 
 type SortCriteria = "date" | "squareFootage";
@@ -54,17 +54,18 @@ function App() {
     if (savedFilters) {
       return new Map(JSON.parse(savedFilters));
     }
-    return new Map([
-      ["Bakerloo", 0],
-      ["Central", 0],
-      ["Circle", 0],
-      ["District", 0],
-      ["Hammersmith City", 0],
+    return new Map<LineName, number>([
       ["Jubilee", 0],
+      ["Elizabeth", 0],
+      ["Central", 0],
       ["Metropolitan", 0],
+      ["Circle", 0],
+      ["Hammersmith City", 0],
       ["Northern", 0],
-      ["Piccadilly", 0],
       ["Victoria", 0],
+      ["Bakerloo", 0],
+      ["District", 0],
+      ["Piccadilly", 0],
       ["Waterloo City", 0],
     ]);
   });
@@ -118,9 +119,8 @@ function App() {
 
   useEffect(() => {
     const fetchData = async () => {
-      // const importedRightmoveData = await (await import('../../../storage/datasets/all-rightmove/000000033.json')).default.listings as PropertyListing[];
-      const importedRightmoveData = [] as unknown as RightmoveListing[];
-      const importedOnTheMarketData = await (await import('../../../storage/datasets/all-onthemarket/000000001.json')).default.listings as unknown as PropertyListing[];
+      const importedRightmoveData = await (await import('../../../storage/datasets/1720428600940-all-rightmove/000000001.json')).default.listings as unknown as PropertyListing[];
+      const importedOnTheMarketData = await (await import('../../../storage/datasets/1720428604817-all-onthemarket/000000001.json')).default.listings as unknown as PropertyListing[];
 
       importedRightmoveData.forEach(hydrateListing);
       importedOnTheMarketData.forEach(hydrateListing);
@@ -188,6 +188,12 @@ function App() {
     newFilters.set(lineName, newValue);
     setStationDistanceFilters(newFilters);
   };
+
+  const paginator = <div style={{ display: 'flex', justifyContent: 'center', marginTop: '10px' }}>
+    <button onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1}>Previous</button>
+    <span style={{ margin: '0 10px' }}>Page {currentPage} of {totalPages}</span>
+    <button onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages}>Next</button>
+  </div>
 
   return (
     <>
@@ -269,13 +275,9 @@ function App() {
         </div>
         <button onClick={filterAndSortData}>Apply Filters (Results: {filteredData.length})</button>
       </div>
-      <div style={{ display: 'flex', justifyContent: 'center', marginTop: '10px' }}>
-        <button onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1}>Previous</button>
-        <span style={{ margin: '0 10px' }}>Page {currentPage} of {totalPages}</span>
-        <button onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages}>Next</button>
-      </div>
       <div>
-        <div style={{ overflowY: 'scroll' }}>
+        {paginator}
+        <div style={{ overflowY: 'hidden' }}>
           {paginatedData.map((listing) => (
             <Listing
               key={listing.listingId}
@@ -285,6 +287,7 @@ function App() {
             />
           ))}
         </div>
+        {paginator}
       </div>
     </>
   );

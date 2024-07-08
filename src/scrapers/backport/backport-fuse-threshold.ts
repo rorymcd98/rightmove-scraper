@@ -1,9 +1,12 @@
-import Fuse from "fuse.js";
+import { Configuration, Dataset } from "crawlee";
+import { RightmoveListing } from "../../types";
 import { StationName, stations } from "../../transport";
+import Fuse from "fuse.js";
 
 const options = {
     keys: ['name'],
-    threshold: 0.9
+    threshold: 5,
+    includeScores: true,
 };
 
 const fuse = new Fuse(Object.keys(stations), options);
@@ -33,17 +36,44 @@ const knownMappings: Record<string, StationName | null> = {
     "Feltham Station": null,
 }
 
-export function matchToNearestName(candidateStation: string): StationName | null {
+let count = 0;
+
+function matchToNearestName(candidateStation: string): StationName | null {
     if (candidateStation in knownMappings) {
         return knownMappings[candidateStation];
     }
 
     candidateStation = candidateStation.replace("Underground", "").replace(/\(.*?\)/g, "").replace("Station", "").trim();
-    const results = fuse.search(candidateStation);
+    let results = fuse.search(candidateStation);
 
     if (results.length == 0) {
         return null;
     }
 
+    results = results.sort((a, b) => a.score - b.score);
+
     return results[0].item as StationName;
 }
+
+const config = Configuration.getGlobalConfig();
+
+async function Main() {
+
+    const seen = new Set();
+    const allDataset = await Dataset.open<{ listings: RightmoveListing[] }>("all-rightmove");
+    const allListings = (await allDataset.getData()).items.flatMap(x => x.listings).map(x => {
+        if (x.nearestStations == undefined) return x;
+        x.nearestStations = x.nearestStations.map(x => {
+            const newName = matchToNearestName(x.rawText);
+            x.stationName = newName;
+            return x;
+        });
+        return x;
+    })
+    console.log(count)
+
+    // const newAllDataset = await Dataset.open<{ listings: RightmoveListing[] }>("all-rightmove3");
+    // newAllDataset.pushData({ listings: Array.from(allListings.values()) })
+}
+
+Main();

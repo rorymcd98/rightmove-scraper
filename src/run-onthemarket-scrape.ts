@@ -43,7 +43,7 @@ function buildOnTheMarketListingUrls(listingIds: string[]) {
 const url = SearchUrls[defaultCategoryName];
 const runOnTheMarketScrape = async () => {
   const startingIndex = 1;
-  const endingIndex = 2;
+  const endingIndex = 4;
   const step = 1; // onthemarket default
   const indexPageUrls = createOnTheMarketIndexedUrls(url, startingIndex, endingIndex, step);
 
@@ -52,7 +52,7 @@ const runOnTheMarketScrape = async () => {
   // Find the pages
   config.set("defaultDatasetId", "indexing-onthemarket-" + defaultCategoryName);
   config.set("defaultKeyValueStoreId", "indexing-onthemarket-" + defaultCategoryName);
-  config.set("defaultRequestQueueId", "indexing-" + Math.random().toString());
+  config.set("defaultRequestQueueId", Date.now() + "-indexing-onthemarket");
 
   const crawler = createOnTheMarketListingFinder();
   console.log(indexPageUrls)
@@ -78,11 +78,11 @@ const runOnTheMarketScrape = async () => {
   await listingScraper.run(unscrapedListingUrls.slice(0, 1));
 
   const allNewData = (await Dataset.getData<OnTheMarketListing>()).items;
-  if (allNewData.length == 0) {
-    console.log("No new Data for onthermarket")
-    return;
-  }
+  const allOldData = (await allDataset.getData()).items.flatMap(x => x.listings);
+  const archiveDataset = await Dataset.open<{ listings: OnTheMarketListing[] }>(Date.now() + "-all-onthemarket");
+
   await allDataset.pushData({ listings: allNewData })
+  await archiveDataset.pushData({ listings: [...allOldData, ...allNewData] });
 };
 
 runOnTheMarketScrape();

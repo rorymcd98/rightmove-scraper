@@ -67,4 +67,5 @@ export type LineName =
   "Waterloo City" |
   "Central" |
   "Victoria" |
-  "District";
+  "District" |
+  "Elizabeth";
