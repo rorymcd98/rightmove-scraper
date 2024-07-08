@@ -61,6 +61,7 @@ function App() {
       ["Metropolitan", 0],
       ["Circle", 0],
       ["Hammersmith City", 0],
+      ["Thames", 0],
       ["Northern", 0],
       ["Victoria", 0],
       ["Bakerloo", 0],
@@ -121,11 +122,13 @@ function App() {
     const fetchData = async () => {
       const importedRightmoveData = await (await import('../../../storage/datasets/current-rightmove/000000001.json')).default.listings as unknown as PropertyListing[];
       const importedOnTheMarketData = await (await import('../../../storage/datasets/current-onthemarket/000000001.json')).default.listings as unknown as PropertyListing[];
+      const importedZooplaData = await (await import('../../../storage/datasets/current-zoopla/000000001.json')).default.listings as unknown as PropertyListing[];
 
       importedRightmoveData.forEach(hydrateListing);
       importedOnTheMarketData.forEach(hydrateListing);
+      importedZooplaData.forEach(hydrateListing);
 
-      const importedData = [...importedRightmoveData, ...importedOnTheMarketData];
+      const importedData = [...importedRightmoveData, ...importedOnTheMarketData, ...importedZooplaData];
       originalData.current = importedData;
       filterAndSortData();
     };

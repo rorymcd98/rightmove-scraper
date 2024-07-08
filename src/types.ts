@@ -57,6 +57,7 @@ export type IndexPage = {
 };
 
 export type LineName =
+  "Thames" |
   "Piccadilly" |
   "Metropolitan" |
   "Circle" |

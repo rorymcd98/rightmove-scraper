@@ -21,15 +21,17 @@ async function getRightmoveFloorPlanUrlAsync(page: Page): Promise<string | null>
 }
 
 async function getZooplaFloorPlanUrlAsync(page: Page): Promise<string | null> {
-    const floorPlanDiv = await page.$("div[data-name=floorplan-item]");
-    const floorPlanImage = await floorPlanDiv?.$("source");
-    const miniSourceAttribute = await floorPlanImage?.getAttribute("srcset");
+    const floorPlanImage = page.locator('div[data-testid="floorplan-thumbnail-0"]');
 
-    if (miniSourceAttribute == null) {
+    const lastSource = floorPlanImage.locator('source').last();
+
+    if (lastSource == null) {
         return null;
     }
-    const floorPlanUrl = miniSourceAttribute.replace("lid.", "lc.").replace("u/480/360", "").replace(":p", "");
-    return floorPlanUrl;
+
+    const floorPlanUrl = (await lastSource.getAttribute("srcset"))?.replace("480/360", "1200/900").split(" ").at(0)?.replace(":p", "");
+    console.log(floorPlanUrl);
+    return floorPlanUrl ?? null;
 }
 
 async function getOnTheMarketFloorPlanUrlAsync(page: Page): Promise<string | null> {

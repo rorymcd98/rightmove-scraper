@@ -12,6 +12,7 @@ const Listing: React.FC<ListingProps> = ({ listing, showHidden, showFavourite })
 
   const [favourite, setFavourite] = useState<boolean>(false);
   const [hide, setHide] = useState<boolean>(false);
+  const [showAllImages, setShowAllImages] = useState<boolean>(false);
 
   useEffect(() => {
     if (localStorage.getItem('favouriteListings')) {
@@ -54,13 +55,19 @@ const Listing: React.FC<ListingProps> = ({ listing, showHidden, showFavourite })
 
   if ((hide && !showHidden) || (!favourite && showFavourite)) return null;
 
+  const baseLimit = 5;
+  const limitImages = showAllImages ? 100 : baseLimit;
+
   return (
     <div style={{ border: '1px solid #ddd', margin: '10px', padding: '10px' }}>
       <h2>{listing.title}</h2>
-      <div style={{ display: 'flex', overflowX: 'auto', maxHeight: '200px' }}>
-        {listing.imageUrls.map((imageUrl, index) =>
+      <div style={{ display: 'flex', overflowX: 'auto', maxHeight: '200px', alignItems: "center" }}>
+        {listing.imageUrls.slice(0, limitImages).map((imageUrl, index) =>
           <img key={index} src={imageUrl} alt="listing" style={{ maxHeight: '200px', marginRight: '10px' }} />
         )}
+        {listing.imageUrls.length > baseLimit &&
+          <button style={{ background: "gray", border: "solid black 1px", borderRadius: "50%", padding: "2px" }} onClick={() => setShowAllImages(true)}>+</button>
+        }
       </div>
       <div style={{ display: 'flex', justifyContent: 'space-evenly', alignItems: 'center', marginTop: '10px' }}>
         <div style={{ paddingRight: '10px' }}>

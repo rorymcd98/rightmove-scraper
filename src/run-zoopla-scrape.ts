@@ -31,9 +31,16 @@ function buildZooplaListingUrls(listingIds: string[]) {
 }
 
 const url = SearchUrls[defaultCategoryName];
+
+const extraHTTPHeaders = {
+  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+  'Accept-Language': 'en-US,en;q=0.9',
+  'Accept-Encoding': 'gzip, deflate, br'
+}
+
 const runZooplaScrape = async () => {
   const startingIndex = 1;
-  const endingIndex = 10;
+  const endingIndex = 25;
   const step = 1; // zoopla default
   const indexPageUrls = createZooplaIndexedUrls(url, startingIndex, endingIndex, step);
 
@@ -47,7 +54,14 @@ const runZooplaScrape = async () => {
 
   const crawler = createZooplaListingFinder();
   console.log(indexPageUrls)
-  await crawler.run(indexPageUrls);
+
+  const indexerRequests = indexPageUrls;
+  // .map(url => ({
+  //   url,
+  //   headers: extraHTTPHeaders,
+  // }));
+
+  await crawler.run(indexerRequests);
 
   const newListings = (await Dataset.getData<IndexPage>()).items.flatMap(x => x.listings);
   const allDataset = await Dataset.open<{ listings: ZooplaListing[] }>("all-zoopla");
@@ -69,18 +83,13 @@ const runZooplaScrape = async () => {
   const listingScraper = createZooplaListingScraper(listingIdToAdDate);
   const unscrapedListingUrls = buildZooplaListingUrls(unscrapedIds.filter(x => x != undefined));
 
-  const extraHTTPHeaders = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-    'Accept-Language': 'en-US,en;q=0.9',
-    'Accept-Encoding': 'gzip, deflate, br'
-  }
+  const scraperRequests = unscrapedListingUrls;
+  // .map(url => ({
+  //   url,
+  //   headers: extraHTTPHeaders,
+  // }));
 
-  const requests = unscrapedListingUrls.map(url => ({
-    url,
-    headers: extraHTTPHeaders,
-  }));
-
-  await listingScraper.run(requests); // list of urls -> list of requests
+  await listingScraper.run(scraperRequests); // list of urls -> list of requests
 
   const allNewData = (await Dataset.getData<ZooplaListing>()).items.filter(x => !seenBeforeIds.has(x.listingId));
   console.log(allNewData.length + " new results");

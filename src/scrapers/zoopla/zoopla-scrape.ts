@@ -5,6 +5,7 @@ import { IndexPage, IndexedListing, ListingDebug, ZooplaListing, Tenure } from "
 import { findSquareFootageNlpAsync } from "../nlp-sqft";
 import { getSquareFootageFromGptAsync } from "../gpt-sqft";
 import { findAllZooplaImagesAsync } from "../find-images";
+import { getNearestStationsAsync } from "./zoopla-stations";
 
 
 ///////////// Scrape data from individual listings
@@ -165,8 +166,9 @@ function splitString(str: string, delimeter: string) {
 // Get the data from each listing
 export function createZooplaListingScraper(listingIdToDateMap: Map<number, Date>) {
   const crawler = new PlaywrightCrawler({
-    maxConcurrency: 1,
-    async requestHandler({ request, page, log, saveSnapshot }) {
+    maxConcurrency: 5,
+    retryOnBlocked: true,
+    async requestHandler({ request, page, log }) {
       const pageTitle = await page.title();
       log.info(`Title of ${request.loadedUrl} is '${pageTitle}'`);
 
@@ -182,9 +184,6 @@ export function createZooplaListingScraper(listingIdToDateMap: Map<number, Date>
         log.warning(`$Listing doesn't have square footage`);
       }
 
-      // Not possible for zoopla
-      // const addedOrReducedDate = await findAddedOrReducedDateOnListingAsync(page, log);
-
       const rawPriceNumber_pounds = await findPriceInPoundsAsync(page, log);
 
       const tenureValue = await findTenureAsync(page, log);
@@ -194,6 +193,8 @@ export function createZooplaListingScraper(listingIdToDateMap: Map<number, Date>
       const splitTitle = splitString(pageTitle, ", ");
       const titleMain = splitTitle[0];
       const location = splitTitle[1];
+
+      const nearestStations = await getNearestStationsAsync(page);
 
       const indexPage: ZooplaListing =
       {
@@ -211,7 +212,7 @@ export function createZooplaListingScraper(listingIdToDateMap: Map<number, Date>
           footageResolution: squareFootageValue?.[1] ?? "unresolved",
         },
         site: "zoopla",
-        nearestStations: [],
+        nearestStations: nearestStations,
       };
 
       // Push the list of urls to the dataset
@@ -238,7 +239,8 @@ async function getDateFromListingEleAsync(listing: ElementHandle<SVGElement | HT
 export function createZooplaListingFinder() {
   const crawler = new PlaywrightCrawler({
     persistCookiesPerSession: true,
-    maxConcurrency: 1,
+    maxConcurrency: 5,
+    retryOnBlocked: true,
     async requestHandler({ request, page, log }) {
       // Determine if the last listing is too old
       const listings = await page.$$(".dkr2t83");
