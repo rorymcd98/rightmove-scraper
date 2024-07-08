@@ -7,61 +7,61 @@ import { Sites } from "../types";
 
 const openai = new OpenAI();
 
-async function getRightmoveFloorPlanUrlAsync(page: Page): Promise<string | null>{
+async function getRightmoveFloorPlanUrlAsync(page: Page): Promise<string | null> {
     const candidates = await page.$$eval("img", (imgs) => {
         return imgs.map(img => img.getAttribute("src")).filter(src => src?.includes("max_296x197"));
-      });
+    });
 
     const miniFloorPlanUrl = candidates?.[0] ?? null;
-    if(miniFloorPlanUrl == null){
+    if (miniFloorPlanUrl == null) {
         return null;
     }
     const floorPlanUrl = miniFloorPlanUrl.replace("_max_296x197", "");
     return floorPlanUrl;
 }
 
-async function getZooplaFloorPlanUrlAsync(page: Page): Promise<string | null>{
+async function getZooplaFloorPlanUrlAsync(page: Page): Promise<string | null> {
     const floorPlanDiv = await page.$("div[data-name=floorplan-item]");
     const floorPlanImage = await floorPlanDiv?.$("source");
     const miniSourceAttribute = await floorPlanImage?.getAttribute("srcset");
 
-    if(miniSourceAttribute == null){
+    if (miniSourceAttribute == null) {
         return null;
     }
     const floorPlanUrl = miniSourceAttribute.replace("lid.", "lc.").replace("u/480/360", "").replace(":p", "");
     return floorPlanUrl;
 }
 
-async function getOnTheMarketFloorPlanUrlAsync(page: Page): Promise<string | null>{
-    if(await page.getByText("Floorplan").isHidden()) return null;
-    await page.getByText("Floorplan").click();
+async function getOnTheMarketFloorPlanUrlAsync(page: Page): Promise<string | null> {
+    if (await page.getByRole('button', { name: 'Floorplan' }).isHidden()) return null;
+    await page.getByRole('button', { name: 'Floorplan' }).click();
     const floorPlanImage = await page.getByRole('img', { name: 'Floorplan' }).first();
     const sourceAttribute = await floorPlanImage?.getAttribute("src");
 
-    if(sourceAttribute == null){
+    if (sourceAttribute == null) {
         return null;
     }
 
     return sourceAttribute;
 }
 
-async function askGptForSqrFootage(floorPlanUrl: string): Promise<number | undefined>{
+async function askGptForSqrFootage(floorPlanUrl: string): Promise<number | undefined> {
     const response = await openai.chat.completions.create({
         model: "gpt-4o",
         messages: [
-        {
-            role: "user",
-            content: [
-            { type: "text", text: "Give me just a number, no other text, for what the square footage is in this floor plan. It should be a number aproximately in the 400-1200 range. It will be state somewhere in this image" },
             {
-                type: "image_url",
-                image_url: {
-                    url: floorPlanUrl,
-                    detail: "low",
-                },
+                role: "user",
+                content: [
+                    { type: "text", text: "Give me just a number, no other text, for what the square footage is in this floor plan. It should be a number aproximately in the 400-1200 range. It will be state somewhere in this image" },
+                    {
+                        type: "image_url",
+                        image_url: {
+                            url: floorPlanUrl,
+                            detail: "low",
+                        },
+                    },
+                ],
             },
-            ],
-        },
         ],
     });
 
@@ -69,7 +69,7 @@ async function askGptForSqrFootage(floorPlanUrl: string): Promise<number | undef
 
     const matches = response.choices[0].message.content?.match(pattern);
     const firstMatch = matches?.at(0);
-    if(firstMatch == undefined){
+    if (firstMatch == undefined) {
         return firstMatch;
     } else {
         return parseInt(firstMatch.replace(",", ""));
@@ -83,7 +83,7 @@ export async function getSquareFootageFromGptAsync(page: Page, log: Log, site: S
     if (site == "zoopla") floorPlanUrl = await getZooplaFloorPlanUrlAsync(page);
     if (site == "onthemarket") floorPlanUrl = await getOnTheMarketFloorPlanUrlAsync(page);
 
-    if (floorPlanUrl == null){
+    if (floorPlanUrl == null) {
         log.warning("Something went wrong trying to find the floor plan img src");
         return;
     }

@@ -4,6 +4,7 @@ import { createRightmoveListingFinder } from "./scrapers/rightmove/rightmove-ind
 import fs from "fs";
 import defaultUrl, { Category } from "./set-category";
 import { IndexPage, RightmoveListing } from "./types";
+import { filterUnique } from "./scrapers/backport/filter-unique";
 
 const config = Configuration.getGlobalConfig();
 config.set("purgeOnStart", false);
@@ -74,11 +75,16 @@ const runRightmoveScrape = async () => {
   const unscrapedListingUrls = buildRightmoveListingUrls(unscrapedIds.filter(x => x != undefined));
   await listingScraper.run(unscrapedListingUrls);
 
-  const allNewData = (await Dataset.getData<RightmoveListing>()).items;
-  const archiveDataset = await Dataset.open<{ listings: RightmoveListing[] }>(Date.now() + "-all-rightmove");
+  const allNewData = (await Dataset.getData<RightmoveListing>()).items.filter(x => !seenBeforeIds.has(x.listingId));
+  console.log(allNewData.length + "new results")
+  const oldCurrentDataset = await Dataset.open<{ listings: RightmoveListing[] }>("current-rightmove");
+  await oldCurrentDataset.drop();
+
+  const currentDataset = await Dataset.open<{ listings: RightmoveListing[] }>("current-rightmove");
+  const currentData = filterUnique([...allOldData, ...allNewData]);
 
   await allDataset.pushData({ listings: allNewData })
-  await archiveDataset.pushData({ listings: [...allOldData, ...allNewData] });
+  await currentDataset.pushData({ listings: currentData });
 };
 
 runRightmoveScrape();

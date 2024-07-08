@@ -4,6 +4,7 @@ import { createOnTheMarketListingFinder } from "./scrapers/onthemarket/onthemark
 import fs from "fs";
 import defaultCategoryName, { Category } from "./set-category";
 import { IndexPage, OnTheMarketListing } from "./types";
+import { filterUnique } from "./scrapers/backport/filter-unique";
 
 const config = Configuration.getGlobalConfig();
 config.set("purgeOnStart", false);
@@ -69,20 +70,26 @@ const runOnTheMarketScrape = async () => {
   config.set("defaultKeyValueStoreId", "scraping-onthemarket-" + defaultCategoryName);
   config.set("defaultRequestQueueId", (Date.now()).toString() + "scraping-onthemarket-" + defaultCategoryName);
   const allDataset = await Dataset.open<{ listings: OnTheMarketListing[] }>("all-onthemarket");
-  const seenBeforeIds = new Set<number>();
-  (await allDataset.getData()).items.flatMap(x => x.listings).forEach(x => seenBeforeIds.add(x.listingId));
+  const seenBeforeIds = new Set<number>((await allDataset.getData()).items.flatMap(x => x.listings).map(x => x.listingId));
 
   const listingScraper = createOnTheMarketListingScraper(listingIdToAdDate);
   const unscrapedListingUrls = buildOnTheMarketListingUrls(newListings.map(x => x.listingId).filter(x => !seenBeforeIds.has(Number(x))));
 
-  await listingScraper.run(unscrapedListingUrls.slice(0, 1));
+  await listingScraper.run(unscrapedListingUrls);
 
-  const allNewData = (await Dataset.getData<OnTheMarketListing>()).items;
+  const allNewData = (await Dataset.getData<OnTheMarketListing>()).items.filter(x => !seenBeforeIds.has(x.listingId));
+  console.log(allNewData.length + "new results")
   const allOldData = (await allDataset.getData()).items.flatMap(x => x.listings);
-  const archiveDataset = await Dataset.open<{ listings: OnTheMarketListing[] }>(Date.now() + "-all-onthemarket");
-
   await allDataset.pushData({ listings: allNewData })
-  await archiveDataset.pushData({ listings: [...allOldData, ...allNewData] });
+
+  // Drop then re-add data to the current dataset
+  const oldCurrentDataset = await Dataset.open<{ listings: OnTheMarketListing[] }>("current-onthemarket");
+  await oldCurrentDataset.drop();
+
+  const currentData = filterUnique([...allOldData, ...allNewData]);
+
+  const currentDataset = await Dataset.open<{ listings: OnTheMarketListing[] }>("current-onthemarket");
+  await currentDataset.pushData({ listings: currentData });
 };
 
 runOnTheMarketScrape();

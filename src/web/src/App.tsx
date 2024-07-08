@@ -119,8 +119,8 @@ function App() {
 
   useEffect(() => {
     const fetchData = async () => {
-      const importedRightmoveData = await (await import('../../../storage/datasets/1720428600940-all-rightmove/000000001.json')).default.listings as unknown as PropertyListing[];
-      const importedOnTheMarketData = await (await import('../../../storage/datasets/1720428604817-all-onthemarket/000000001.json')).default.listings as unknown as PropertyListing[];
+      const importedRightmoveData = await (await import('../../../storage/datasets/current-rightmove/000000001.json')).default.listings as unknown as PropertyListing[];
+      const importedOnTheMarketData = await (await import('../../../storage/datasets/current-onthemarket/000000001.json')).default.listings as unknown as PropertyListing[];
 
       importedRightmoveData.forEach(hydrateListing);
       importedOnTheMarketData.forEach(hydrateListing);
