@@ -40,7 +40,7 @@ const extraHTTPHeaders = {
 
 const runZooplaScrape = async () => {
   const startingIndex = 1;
-  const endingIndex = 25;
+  const endingIndex = 3;
   const step = 1; // zoopla default
   const indexPageUrls = createZooplaIndexedUrls(url, startingIndex, endingIndex, step);
 
@@ -81,7 +81,8 @@ const runZooplaScrape = async () => {
   const unscrapedIds = newListings.map(x => x.listingId).filter(x => !seenBeforeIds.has(Number(x)));
 
   const listingScraper = createZooplaListingScraper(listingIdToAdDate);
-  const unscrapedListingUrls = buildZooplaListingUrls(unscrapedIds.filter(x => x != undefined));
+  const newListingUrls = newListings.map(x => x.listingId).filter(x => !seenBeforeIds.has(Number(x)));
+  const unscrapedListingUrls = buildZooplaListingUrls(newListingUrls);
 
   const scraperRequests = unscrapedListingUrls;
   // .map(url => ({
@@ -92,7 +93,7 @@ const runZooplaScrape = async () => {
   await listingScraper.run(scraperRequests); // list of urls -> list of requests
 
   const allNewData = (await Dataset.getData<ZooplaListing>()).items.filter(x => !seenBeforeIds.has(x.listingId));
-  console.log(allNewData.length + " new results");
+  console.log(`${allNewData.length} new results (out of ${newListingUrls.length} found)`)
   const oldCurrentDataset = await Dataset.open<{ listings: ZooplaListing[] }>("current-zoopla");
   await oldCurrentDataset.drop();
 

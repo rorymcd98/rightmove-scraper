@@ -44,7 +44,7 @@ function buildOnTheMarketListingUrls(listingIds: string[]) {
 const url = SearchUrls[defaultCategoryName];
 const runOnTheMarketScrape = async () => {
   const startingIndex = 1;
-  const endingIndex = 4;
+  const endingIndex = 3;
   const step = 1; // onthemarket default
   const indexPageUrls = createOnTheMarketIndexedUrls(url, startingIndex, endingIndex, step);
 
@@ -73,12 +73,13 @@ const runOnTheMarketScrape = async () => {
   const seenBeforeIds = new Set<number>((await allDataset.getData()).items.flatMap(x => x.listings).map(x => x.listingId));
 
   const listingScraper = createOnTheMarketListingScraper(listingIdToAdDate);
-  const unscrapedListingUrls = buildOnTheMarketListingUrls(newListings.map(x => x.listingId).filter(x => !seenBeforeIds.has(Number(x))));
+  const newListingUrls = newListings.map(x => x.listingId).filter(x => !seenBeforeIds.has(Number(x)));
+  const unscrapedListingUrls = buildOnTheMarketListingUrls(newListingUrls);
 
   await listingScraper.run(unscrapedListingUrls);
 
   const allNewData = (await Dataset.getData<OnTheMarketListing>()).items.filter(x => !seenBeforeIds.has(x.listingId));
-  console.log(allNewData.length + " new results")
+  console.log(`${allNewData.length} new results (out of ${newListingUrls.length} found)`)
   const allOldData = (await allDataset.getData()).items.flatMap(x => x.listings);
   await allDataset.pushData({ listings: allNewData })
 

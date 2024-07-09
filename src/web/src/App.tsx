@@ -120,9 +120,9 @@ function App() {
 
   useEffect(() => {
     const fetchData = async () => {
-      const importedRightmoveData = await (await import('../../../storage/datasets/current-rightmove/000000001.json')).default.listings as unknown as PropertyListing[];
-      const importedOnTheMarketData = await (await import('../../../storage/datasets/current-onthemarket/000000001.json')).default.listings as unknown as PropertyListing[];
-      const importedZooplaData = await (await import('../../../storage/datasets/current-zoopla/000000001.json')).default.listings as unknown as PropertyListing[];
+      const importedRightmoveData = (await import('../../../storage/datasets/current-rightmove/000000001.json')).default.listings as unknown as PropertyListing[];
+      const importedOnTheMarketData = (await import('../../../storage/datasets/current-onthemarket/000000001.json')).default.listings as unknown as PropertyListing[];
+      const importedZooplaData = (await import('../../../storage/datasets/current-zoopla/000000001.json')).default.listings as unknown as PropertyListing[];
 
       importedRightmoveData.forEach(hydrateListing);
       importedOnTheMarketData.forEach(hydrateListing);
@@ -198,6 +198,8 @@ function App() {
     <button onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages}>Next</button>
   </div>
 
+  const minSquareFootageSet = !(minSquareFootage == null || minSquareFootage == "0" || Number(minSquareFootage) <= 0);
+
   return (
     <>
       <div style={{ display: "inline-flex", flexDirection: "row", width: "100%", justifyContent: "space-around" }}>
@@ -236,14 +238,6 @@ function App() {
           <label>
             <input
               type="checkbox"
-              checked={!showMissingFtg}
-              onChange={() => setShowMissingFtg(!showMissingFtg)}
-            />
-            Hide missing square footage
-          </label>
-          <label>
-            <input
-              type="checkbox"
               checked={showFavourite}
               onChange={() => setShowFavourite(!showFavourite)}
             />
@@ -268,13 +262,22 @@ function App() {
             onChange={(e) => setFilterDate(e.target.value)}
           />
         </div>
-        <div>
+        <div style={{ display: "flex", flexDirection: "column" }}>
           <input
             type="number"
             placeholder="Enter a minimum square footage"
             value={minSquareFootage}
             onChange={(e) => setMinSquareFootage(e.target.value)}
           />
+          <label style={{ opacity: minSquareFootageSet ? "100%" : "20%" }}>
+            <input
+              disabled={!minSquareFootageSet}
+              type="checkbox"
+              checked={!showMissingFtg}
+              onChange={() => setShowMissingFtg(!showMissingFtg)}
+            />
+            Hide missing square footage
+          </label>
         </div>
         <button onClick={filterAndSortData}>Apply Filters (Results: {filteredData.length})</button>
       </div>

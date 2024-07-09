@@ -42,7 +42,7 @@ function buildRightmoveListingUrls(listingIds: string[]) {
 const url = SearchUrls[defaultUrl];
 const runRightmoveScrape = async () => {
   const startingIndex = 0
-  const endingIndex = 1;
+  const endingIndex = 73;
   const step = 24; // rightmove default
   const indexPageUrls = createRightmoveIndexedUrls(url, startingIndex, endingIndex, step);
 
@@ -69,14 +69,13 @@ const runRightmoveScrape = async () => {
   const seenBeforeIds = new Set<number>();
   (await allDataset.getData()).items.flatMap(x => x.listings).forEach(x => seenBeforeIds.add(x.listingId));
 
-  const unscrapedIds = newListings.map(x => x.listingId).filter(x => !seenBeforeIds.has(Number(x)));
-
   const listingScraper = createRightmoveListingScraper();
-  const unscrapedListingUrls = buildRightmoveListingUrls(unscrapedIds.filter(x => x != undefined));
+  const newListingUrls = newListings.map(x => x.listingId).filter(x => !seenBeforeIds.has(Number(x)));
+  const unscrapedListingUrls = buildRightmoveListingUrls(newListingUrls);
   await listingScraper.run(unscrapedListingUrls);
 
   const allNewData = (await Dataset.getData<RightmoveListing>()).items.filter(x => !seenBeforeIds.has(x.listingId));
-  console.log(allNewData.length + " new results")
+  console.log(`${allNewData.length} new results (out of ${newListingUrls.length} found)`)
   const oldCurrentDataset = await Dataset.open<{ listings: RightmoveListing[] }>("current-rightmove");
   await oldCurrentDataset.drop();
 

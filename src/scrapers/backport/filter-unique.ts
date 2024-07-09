@@ -1,5 +1,5 @@
 import { Dataset } from "crawlee";
-import { OnTheMarketListing, PropertyListing, RightmoveListing } from "../../types";
+import { OnTheMarketListing, PropertyListing, RightmoveListing, ZooplaListing } from "../../types";
 
 export function filterUnique<TPropertyListing extends PropertyListing>(listings: TPropertyListing[]) {
     const seenBefore = new Set<number>();
@@ -38,3 +38,33 @@ async function MainOnTheMarket() {
 
 
 // MainOnTheMarket();
+
+
+function filterImages(listings: ZooplaListing[]) {
+    return listings.map(x => {
+        x.imageUrls = x.imageUrls.filter(x => x.includes("1024/768") && !x.includes("jpg:p"));
+        return x;
+    })
+}
+
+async function MainZoopla() {
+    const allOldDataset = await Dataset.open<{ listings: ZooplaListing[] }>("all-zoopla");
+    const allOld = await allOldDataset.getData();
+    await allOldDataset.drop();
+
+    // const unique = filterUnique(allOld.items.flatMap(x => x.listings));
+    const unique = filterImages(allOld.items.flatMap(x => x.listings));
+
+    const allNewDataset = await Dataset.open<{ listings: ZooplaListing[] }>("all-zoopla");
+    await allNewDataset.pushData({ listings: unique });
+
+    const currentZoopla = await Dataset.open<{ listings: ZooplaListing[] }>("current-zoopla");
+    await currentZoopla.drop();
+
+
+    const ncurrentZoopla = await Dataset.open<{ listings: ZooplaListing[] }>("current-zoopla");
+    await ncurrentZoopla.pushData({ listings: unique });
+}
+
+
+MainZoopla();

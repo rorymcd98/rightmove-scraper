@@ -56,16 +56,16 @@ const Listing: React.FC<ListingProps> = ({ listing, showHidden, showFavourite })
   if ((hide && !showHidden) || (!favourite && showFavourite)) return null;
 
   const baseLimit = 5;
-  const limitImages = showAllImages ? 100 : baseLimit;
+  const imagesLimit = showAllImages ? 100 : baseLimit;
 
   return (
     <div style={{ border: '1px solid #ddd', margin: '10px', padding: '10px' }}>
       <h2>{listing.title}</h2>
-      <div style={{ display: 'flex', overflowX: 'auto', maxHeight: '200px', alignItems: "center" }}>
-        {listing.imageUrls.slice(0, limitImages).map((imageUrl, index) =>
+      <div style={{ display: 'flex', overflowX: 'auto', maxHeight: '200px', alignItems: "center", overflowY: "hidden" }}>
+        {listing.imageUrls.slice(0, imagesLimit).map((imageUrl, index) =>
           <img key={index} src={imageUrl} alt="listing" style={{ maxHeight: '200px', marginRight: '10px' }} />
         )}
-        {listing.imageUrls.length > baseLimit &&
+        {listing.imageUrls.length > baseLimit && !showAllImages &&
           <button style={{ background: "gray", border: "solid black 1px", borderRadius: "50%", padding: "2px" }} onClick={() => setShowAllImages(true)}>+</button>
         }
       </div>
@@ -92,7 +92,7 @@ const Listing: React.FC<ListingProps> = ({ listing, showHidden, showFavourite })
           <button onClick={handleFavourite} style={{ marginLeft: '10px' }}>{favourite ? "Unfavourite" : "Favourite"}</button>
         </div>
       </div>
-    </div>
+    </div >
   );
 }
 

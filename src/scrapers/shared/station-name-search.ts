@@ -45,5 +45,15 @@ export function matchToNearestName(candidateStation: string): StationName | null
         return null;
     }
 
-    return results[0].item as StationName;
+    const res = results[0].item as StationName;
+
+    // All the overground woods seem to become Chorleywood
+    if (res == "Chorleywood") {
+        if (candidateStation.includes("orley")) {
+            return res;
+        }
+        return null;
+    }
+
+    return res;
 }

@@ -7,7 +7,7 @@
   "private": true,
   "scripts": {
     "lint": "eslint --ext .ts .",
-    "scrape-all": "concurrently \"npm run scrape-rightmove\" \"npm run scrape-onthemarket\"",
+    "scrape-all": "concurrently \"npm run scrape-rightmove\" \"npm run scrape-onthemarket\" \"npm run scrape-zoopla\"",
     "scrape-rightmove": "tsx src/run-rightmove-scrape.ts",
     "scrape-onthemarket": "tsx src/run-onthemarket-scrape.ts",
     "scrape-zoopla": "tsx src/run-zoopla-scrape.ts",

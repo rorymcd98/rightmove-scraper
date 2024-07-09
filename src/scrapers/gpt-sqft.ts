@@ -25,7 +25,7 @@ async function getZooplaFloorPlanUrlAsync(page: Page): Promise<string | null> {
 
     const lastSource = floorPlanImage.locator('source').last();
 
-    if (lastSource == null) {
+    if (lastSource == null || ! await lastSource.isVisible()) {
         return null;
     }
 
@@ -89,7 +89,17 @@ export async function getSquareFootageFromGptAsync(page: Page, log: Log, site: S
         log.warning("Something went wrong trying to find the floor plan img src");
         return;
     }
-    return askGptForSqrFootage(floorPlanUrl);
+    const gptSqrFootage = await askGptForSqrFootage(floorPlanUrl);
+
+    if (gptSqrFootage == null) {
+        return;
+    }
+
+    // We probably found it in squareMeters
+    if (gptSqrFootage < 300) {
+        return gptSqrFootage * 10.7;
+    }
+    return gptSqrFootage;
 }
 
 
