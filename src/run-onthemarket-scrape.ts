@@ -2,23 +2,13 @@ import { Configuration, Dataset } from "crawlee";
 import { createOnTheMarketListingScraper } from "./scrapers/onthemarket/onthemarket-scrape";
 import { createOnTheMarketListingFinder } from "./scrapers/onthemarket/onthemarket-index";
 
-import defaultCategoryName, { Category } from "./set-category";
+import currentCategory, { Category } from "./set-category";
 import { IndexPage, OnTheMarketListing } from "./types";
 import { filterUnique } from "./scrapers/backport/filter-unique";
+import { ListingIdDataset as ListingIdDataset } from "./scrapers/backport/backport-search-category";
 
 const config = Configuration.getGlobalConfig();
 config.set("purgeOnStart", false);
-
-
-function purgeRequestQueueFolder() {
-  return;
-  // don't want to do this really
-  const path = "./storage/request_queues/";
-  const files = fs.readdirSync(path);
-  for (const file of files) {
-    fs.unlinkSync(path + file);
-  }
-}
 
 const SearchUrls = {
   [Category.general]:
@@ -41,18 +31,16 @@ function buildOnTheMarketListingUrls(listingIds: string[]) {
   return listingIds.map(id => `https://onthemarket.com/details/${id}/`);
 }
 
-const url = SearchUrls[defaultCategoryName];
+const url = SearchUrls[currentCategory];
 const runOnTheMarketScrape = async () => {
   const startingIndex = 1;
-  const endingIndex = 3;
+  const endingIndex = 6;
   const step = 1; // onthemarket default
   const indexPageUrls = createOnTheMarketIndexedUrls(url, startingIndex, endingIndex, step);
 
-  // purgeRequestQueueFolder();
-
   // Find the pages
-  config.set("defaultDatasetId", "indexing-onthemarket-" + defaultCategoryName);
-  config.set("defaultKeyValueStoreId", "indexing-onthemarket-" + defaultCategoryName);
+  config.set("defaultDatasetId", "indexing-onthemarket-" + currentCategory);
+  config.set("defaultKeyValueStoreId", "indexing-onthemarket-" + currentCategory);
   config.set("defaultRequestQueueId", Date.now() + "-indexing-onthemarket");
 
   const crawler = createOnTheMarketListingFinder();
@@ -66,9 +54,16 @@ const runOnTheMarketScrape = async () => {
     listingIdToAdDate.set(parseInt(listing.listingId), listing.listingDate ? new Date(listing.listingDate) : new Date(0));
   }
 
-  config.set("defaultDatasetId", "scraping-onthemarket-" + defaultCategoryName);
-  config.set("defaultKeyValueStoreId", "scraping-onthemarket-" + defaultCategoryName);
-  config.set("defaultRequestQueueId", (Date.now()).toString() + "scraping-onthemarket-" + defaultCategoryName);
+  // Record which category these listings belong to
+  const forCategoryDataset = await Dataset.open<ListingIdDataset>(`search-rightmove-${currentCategory}`);
+  const oldForCategory = (await forCategoryDataset.getData()).items.flatMap(x => x.listingIds);
+  const forCategorySet = new Set(oldForCategory);
+  await forCategoryDataset.pushData({ listingIds: newListings.map(x => Number(x.listingId)).filter(x => !forCategorySet.has(x)) });
+  const listingIdsForThisSearch = new Set<number>((await forCategoryDataset.getData()).items.flatMap(x => x.listingIds));
+
+  config.set("defaultDatasetId", "scraping-onthemarket-" + currentCategory);
+  config.set("defaultKeyValueStoreId", "scraping-onthemarket-" + currentCategory);
+  config.set("defaultRequestQueueId", (Date.now()).toString() + "scraping-onthemarket-" + currentCategory);
   const allDataset = await Dataset.open<{ listings: OnTheMarketListing[] }>("all-onthemarket");
   const seenBeforeIds = new Set<number>((await allDataset.getData()).items.flatMap(x => x.listings).map(x => x.listingId));
 
@@ -87,7 +82,7 @@ const runOnTheMarketScrape = async () => {
   const oldCurrentDataset = await Dataset.open<{ listings: OnTheMarketListing[] }>("current-onthemarket");
   await oldCurrentDataset.drop();
 
-  const currentData = filterUnique([...allOldData, ...allNewData]);
+  const currentData = filterUnique([...allOldData, ...allNewData].filter(x => listingIdsForThisSearch.has(x.listingId)));
 
   const currentDataset = await Dataset.open<{ listings: OnTheMarketListing[] }>("current-onthemarket");
   await currentDataset.pushData({ listings: currentData });

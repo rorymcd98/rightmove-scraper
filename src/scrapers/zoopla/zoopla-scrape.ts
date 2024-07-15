@@ -6,6 +6,7 @@ import { findSquareFootageNlpAsync } from "../nlp-sqft";
 import { getSquareFootageFromGptAsync } from "../gpt-sqft";
 import { findAllZooplaImagesAsync } from "../find-images";
 import { getNearestStationsAsync } from "./zoopla-stations";
+import currentCategory from "../../set-category";
 
 
 ///////////// Scrape data from individual listings
@@ -212,7 +213,7 @@ export function createZooplaListingScraper(listingIdToDateMap: Map<number, Date>
           footageResolution: squareFootageValue?.[1] ?? "unresolved",
         },
         site: "zoopla",
-        nearestStations: nearestStations,
+        nearestStations: nearestStations
       };
 
       // Push the list of urls to the dataset
@@ -242,7 +243,6 @@ export function createZooplaListingFinder() {
     maxConcurrency: 5,
     retryOnBlocked: true,
     async requestHandler({ request, page, log }) {
-      // Determine if the last listing is too old
       const listings = await page.$$(".dkr2t83");
 
       log.info(`Getting results for url ${request.loadedUrl?.split(".co.uk")[1]}`)

@@ -1,59 +1,44 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { PropertyListing } from '../../types';
 import { StationName, stations } from "../../transport";
+import { ListingTag } from "./App";
 
 interface ListingProps {
   listing: PropertyListing;
-  showHidden: boolean;
-  showFavourite: boolean;
+  isFavourite: boolean;
+  addFavourite: (listing: ListingTag) => void;
+  removeFavourite: (listing: ListingTag) => void;
+  isHidden: boolean;
+  addHidden: (listing: ListingTag) => void;
+  removeHidden: (listing: ListingTag) => void;
 }
 
-const Listing: React.FC<ListingProps> = ({ listing, showHidden, showFavourite }) => {
+const Listing: React.FC<ListingProps> = ({ listing, isFavourite, addFavourite, removeFavourite, isHidden, addHidden, removeHidden }) => {
 
-  const [favourite, setFavourite] = useState<boolean>(false);
-  const [hide, setHide] = useState<boolean>(false);
   const [showAllImages, setShowAllImages] = useState<boolean>(false);
 
-  useEffect(() => {
-    if (localStorage.getItem('favouriteListings')) {
-      let favouriteListings = JSON.parse(localStorage.getItem('favouriteListings') || '[]');
-      setFavourite(favouriteListings.includes(listing.listingId));
-    }
-    if (localStorage.getItem('hiddenListings')) {
-      let hiddenListings = JSON.parse(localStorage.getItem('hiddenListings') || '[]');
-      setHide(hiddenListings.includes(listing.listingId));
-    }
-  }, [listing.listingId]);
+
+  const listingTag: ListingTag = {
+    listingId: listing.listingId,
+    site: listing.site,
+  }
 
   const handleFavourite = () => {
-    let favouriteListings = JSON.parse(localStorage.getItem('favouriteListings') || '[]');
-
-    if (favourite) {
-      setFavourite(false);
-      favouriteListings.splice(favouriteListings.indexOf(listing.listingId), 1);
+    if (isFavourite) {
+      removeFavourite(listingTag);
     } else {
-      setFavourite(true);
-      favouriteListings.push(listing.listingId);
+      addFavourite(listingTag)
     }
-
-    localStorage.setItem('favouriteListings', JSON.stringify(favouriteListings));
   }
 
-  const handleHide = () => {
-    let hiddenListings = JSON.parse(localStorage.getItem('hiddenListings') || '[]');
+  const handleHidden = () => {
 
-    if (hide) {
-      setHide(false);
-      hiddenListings.splice(hiddenListings.indexOf(listing.listingId), 1);
+    if (isHidden) {
+      removeHidden(listingTag);
     } else {
-      setHide(true);
-      hiddenListings.push(listing.listingId);
+      addHidden(listingTag)
     }
-
-    localStorage.setItem('hiddenListings', JSON.stringify(hiddenListings));
   }
-
-  if ((hide && !showHidden) || (!favourite && showFavourite)) return null;
 
   const baseLimit = 5;
   const imagesLimit = showAllImages ? 100 : baseLimit;
@@ -88,8 +73,8 @@ const Listing: React.FC<ListingProps> = ({ listing, showHidden, showFavourite })
           ))}
         </div>
         <div style={{ display: "flex", flexDirection: "column", textAlign: 'right', paddingLeft: '10px' }}>
-          <button onClick={handleHide}>{hide ? "Unhide" : "Hide"}</button>
-          <button onClick={handleFavourite} style={{ marginLeft: '10px' }}>{favourite ? "Unfavourite" : "Favourite"}</button>
+          <button onClick={handleHidden}>{isHidden ? "Unhide" : "Hide"}</button>
+          <button onClick={handleFavourite} style={{ marginLeft: '10px' }}>{isFavourite ? "Unfavourite" : "Favourite"}</button>
         </div>
       </div>
     </div >

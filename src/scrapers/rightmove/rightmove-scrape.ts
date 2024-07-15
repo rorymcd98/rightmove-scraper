@@ -4,6 +4,8 @@ import { ListingDebug, RightmoveListing, Tenure } from "../../types";
 import { findSquareFootageNlpAsync } from "../nlp-sqft";
 import { getSquareFootageFromGptAsync } from "../gpt-sqft";
 import { findAllRightmoveImagesAsync } from "../find-images";
+import { getNearestStationsAsync } from "./rightmove-stations";
+import currentCategory from "../../set-category";
 
 
 ///////////// Scrapes data from individual listings
@@ -180,6 +182,8 @@ export function createRightmoveListingScraper() {
       const titleMain = splitTitle[0];
       const location = splitTitle[1];
 
+      const nearestStations = await getNearestStationsAsync(page);
+
       const listingDetails: RightmoveListing =
       {
         listingId: listingId,
@@ -196,6 +200,7 @@ export function createRightmoveListingScraper() {
           footageResolution: squareFootageValue?.[1] ?? "unresolved",
         },
         site: "rightmove",
+        nearestStations: nearestStations
       };
 
       // Push the list of urls to the dataset

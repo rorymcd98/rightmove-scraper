@@ -1,6 +1,6 @@
 import { Configuration, Dataset, PlaywrightCrawler } from "crawlee";
 import { getIdFromUrl } from "../rightmove/rightmove-scrape";
-import defaultCategoryName from "../../set-category";
+import currentCategory from "../../set-category";
 import { NearestStation, RightmoveListing } from "../../types";
 import { getNearestStationsAsync } from "../rightmove/rightmove-stations";
 
@@ -18,8 +18,8 @@ async function Main() {
     const allDataset = await Dataset.open<{ listings: RightmoveListing[] }>("all-rightmove");
     const allListings = await allDataset.getData();
 
-    config.set("defaultRequestQueueId", "backport-stations-rightmove-" + defaultCategoryName);
-    config.set("defaultDatasetId", "backport-stations-rightmove-" + defaultCategoryName);
+    config.set("defaultRequestQueueId", "backport-stations-rightmove-" + currentCategory);
+    config.set("defaultDatasetId", "backport-stations-rightmove-" + currentCategory);
     const backporter = createNearestStationsBackporter();
 
     const urls = buildRightmoveListingUrls(allListings.items.flatMap(x => x.listings).map(x => x.listingId.toString()));
@@ -27,7 +27,7 @@ async function Main() {
 }
 
 async function CreateNewDataset() {
-    const backportDataset = await Dataset.open<BackportStations>("backport-stations-rightmove-" + defaultCategoryName);
+    const backportDataset = await Dataset.open<BackportStations>("backport-stations-rightmove-" + currentCategory);
     const backportMap = new Map<Number, NearestStation[]>();
 
     (await backportDataset.getData()).items.forEach(x => {

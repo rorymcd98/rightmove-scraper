@@ -1,6 +1,6 @@
 import { Configuration, Dataset, PlaywrightCrawler } from "crawlee";
 import { getIdFromUrl } from "../onthemarket/onthemarket-scrape";
-import defaultCategoryName from "../../set-category";
+import currentCategory from "../../set-category";
 import { NearestStation, OnTheMarketListing } from "../../types";
 import { getNearestStationsAsync } from "../onthemarket/onthemarket-stations";
 
@@ -18,8 +18,8 @@ async function Main() {
     const allDataset = await Dataset.open<{ listings: OnTheMarketListing[] }>("all-onthemarket");
     const allListings = await allDataset.getData();
 
-    config.set("defaultRequestQueueId", "backport-stations-onthemarket-" + defaultCategoryName);
-    config.set("defaultDatasetId", "backport-stations-onthemarket-" + defaultCategoryName);
+    config.set("defaultRequestQueueId", "backport-stations-onthemarket-" + currentCategory);
+    config.set("defaultDatasetId", "backport-stations-onthemarket-" + currentCategory);
     const backporter = createNearestStationsBackporter();
 
     const urls = buildOnTheMarketListingUrls(allListings.items.flatMap(x => x.listings).map(x => x.listingId.toString()));
@@ -30,7 +30,7 @@ async function Main() {
 }
 
 async function CreateNewDataset() {
-    const backportDataset = await Dataset.open<BackportStations>("backport-stations-onthemarket-" + defaultCategoryName);
+    const backportDataset = await Dataset.open<BackportStations>("backport-stations-onthemarket-" + currentCategory);
     const backportMap = new Map<Number, NearestStation[]>();
 
     (await backportDataset.getData()).items.forEach(x => {

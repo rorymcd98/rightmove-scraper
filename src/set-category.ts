@@ -1,5 +1,7 @@
 export enum Category {
   general = "general",
+  jamie = "jamie",
 }
-const defaultUrl = Category.general;
-export default defaultUrl;
+// Sets the current search category - used to filter the 'current'
+const currentCategory = Category.general;
+export default currentCategory;

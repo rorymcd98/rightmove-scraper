@@ -5,6 +5,7 @@ import { findSquareFootageNlpAsync } from "../nlp-sqft";
 import { getSquareFootageFromGptAsync } from "../gpt-sqft";
 import { findAllOnTheMarketImagesAsync } from "../find-images";
 import { getNearestStationsAsync } from "./onthemarket-stations";
+import currentCategory from "../../set-category";
 
 ///////////// Scrape data from individual listings
 

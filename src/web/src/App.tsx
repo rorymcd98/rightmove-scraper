@@ -1,17 +1,29 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import './App.css';
 import Listing from './Listing';
-import { LineName, PropertyListing } from '../../types';
+import { LineName, PropertyListing, Site } from '../../types';
 import { stations } from '../../transport';
 
 type SortCriteria = "date" | "squareFootage";
 type LineNameMap = Map<LineName, number>;
+export type ListingTag = {
+  listingId: number,
+  site: Site,
+};
+
+type ListingWithState = {
+  listing: PropertyListing,
+  state: {
+    isHidden: boolean,
+    isFavourite: boolean,
+  }
+}
 
 // If there is a station with a defined name
 // If that station is on a line included in a positive (valid) filter
 // If the distance on the filter exceeds the actual distance
 // We found a match - show the property!
-function filterDataByDistances(filter: LineNameMap, data: PropertyListing[]): PropertyListing[] {
+function filterDataByDistances(filter: LineNameMap, data: ListingWithState[]): ListingWithState[] {
   const posStationFilters: LineNameMap = new Map();
   for (const entry of filter.entries()) {
     if (entry[1] > 0) {
@@ -24,8 +36,8 @@ function filterDataByDistances(filter: LineNameMap, data: PropertyListing[]): Pr
   }
 
   return data.filter(property => {
-    if (!property.nearestStations) return false;
-    return property.nearestStations.some(station => {
+    if (!property.listing.nearestStations) return false;
+    return property.listing.nearestStations.some(station => {
       if (!station.stationName) return false;
       const lines = stations[station.stationName];
       return lines.some(line => {
@@ -41,14 +53,49 @@ function filterDataByDistances(filter: LineNameMap, data: PropertyListing[]): Pr
 }
 
 
+
 function App() {
   const [filterDate, setFilterDate] = useState(() => localStorage.getItem('filterDate') || '');
   const [minSquareFootage, setMinSquareFootage] = useState<string>(() => localStorage.getItem('minSquareFootage') || '');
   const [sortCriteria, setSortCriteria] = useState<SortCriteria | null>(() => localStorage.getItem('sortCriteria') as SortCriteria || null);
   const [showFavourite, setShowFavourite] = useState<boolean>(() => JSON.parse(localStorage.getItem('showFavourite') || 'false'));
   const [showHidden, setShowHidden] = useState<boolean>(() => JSON.parse(localStorage.getItem('showHidden') || 'false'));
-  const [filteredData, setFilteredData] = useState<PropertyListing[]>([]);
+  const [filteredData, setFilteredData] = useState<ListingWithState[]>([]);
   const [showMissingFtg, setShowMissingFtg] = useState<boolean>(() => JSON.parse(localStorage.getItem('showMissingFtg') || 'true'));
+  const [hidden, setHidden] = useState<ListingTag[]>(() => JSON.parse(localStorage.getItem('hiddenListings') || '[]'));
+  useEffect(() => {
+    localStorage.setItem('hiddenListings', JSON.stringify(hidden));
+  }, [hidden]);
+  const addHidden = (listing: ListingTag) => {
+    if (!hidden.some(x => x.listingId == listing.listingId && x.site == listing.site)) {
+      const newHidden = [...hidden, listing];
+      setHidden(newHidden);
+    }
+  };
+  const removeHidden = (listing: ListingTag) => {
+    if (hidden.some(x => x.listingId == listing.listingId && x.site == listing.site)) {
+      const newHidden = hidden.filter(item => !(item.site == listing.site && item.listingId == listing.listingId));
+      setHidden(newHidden);
+    }
+  };
+
+  const [favourites, setFavourite] = useState<ListingTag[]>(() => JSON.parse(localStorage.getItem('favouriteListings') || '[]'));
+  useEffect(() => {
+    localStorage.setItem('favouriteListings', JSON.stringify(favourites));
+  }, [favourites]);
+  const addFavourite = (listing: ListingTag) => {
+    if (!favourites.some(x => x.listingId == listing.listingId && x.site == listing.site)) {
+      const newFavourite = [...favourites, listing];
+      setFavourite(newFavourite);
+    }
+  };
+  const removeFavourite = (listing: ListingTag) => {
+    if (favourites.some(x => x.listingId == listing.listingId && x.site == listing.site)) {
+      const newFavourite = favourites.filter(item => !(item.site == listing.site && item.listingId == listing.listingId));
+      setFavourite(newFavourite);
+    }
+  };
+
   const [stationDistanceFilters, setStationDistanceFilters] = useState<LineNameMap>(() => {
     const savedFilters = localStorage.getItem('stationDistanceFilters');
     if (savedFilters) {
@@ -75,18 +122,18 @@ function App() {
   const [currentPage, setCurrentPage] = useState<number>(1);
   const itemsPerPage = 25;
 
-  const originalData = useRef<PropertyListing[]>([]);
+  const originalData = useRef<ListingWithState[]>([]);
 
-  const sortFilteredData = useCallback((data: PropertyListing[]): PropertyListing[] => {
+  const sortFilteredData = useCallback((data: ListingWithState[]): ListingWithState[] => {
     if (!sortCriteria) return data;
 
     let sortedData = [...data];
     if (sortCriteria === "squareFootage") {
-      sortedData.sort((a, b) => (b.squareFootage || 0) - (a.squareFootage || 0));
+      sortedData.sort((a, b) => (b.listing.squareFootage || 0) - (a.listing.squareFootage || 0));
     } else if (sortCriteria === "date") {
       sortedData.sort((a, b) => {
-        const firstDate = b.adDate ? new Date(b.adDate).getTime() : new Date(0).getTime();
-        const secondDate = a.adDate ? new Date(a.adDate).getTime() : new Date(0).getTime();
+        const firstDate = b.listing.adDate ? new Date(b.listing.adDate).getTime() : new Date(0).getTime();
+        const secondDate = a.listing.adDate ? new Date(a.listing.adDate).getTime() : new Date(0).getTime();
         return firstDate - secondDate;
       });
     }
@@ -105,18 +152,29 @@ function App() {
 
     if (filterDate) {
       const date = new Date(filterDate);
-      data = data.filter(item => new Date(item.adDate ?? new Date(0)) > date);
+      data = data.filter(item => new Date(item.listing.adDate ?? new Date(0)) > date);
     }
 
     if (minSquareFootage !== '' && !isNaN(Number(minSquareFootage))) {
       const fallbackFootage = showMissingFtg ? 1000000 : -1;
-      data = data.filter(r => (r.squareFootage ?? fallbackFootage) > Number(minSquareFootage));
+      data = data.filter(r => (r.listing.squareFootage ?? fallbackFootage) > Number(minSquareFootage));
     }
+
+    data = data.filter(x => {
+      const listing = x.listing;
+      const isHidden = hidden.some(x => x.listingId == listing.listingId && x.site == listing.site);
+      const isFavourite = favourites.some(x => x.listingId == listing.listingId && x.site == listing.site);
+      x.state.isHidden = isHidden;
+      x.state.isFavourite = isFavourite;
+      if (isHidden && !showHidden) return false;
+      if (!isFavourite && showFavourite) return false;
+      return true;
+    })
 
     data = sortFilteredData(data);
     setFilteredData(data);
     setCurrentPage(1); // Reset to the first page after filtering
-  }, [filterDate, minSquareFootage, sortFilteredData, showMissingFtg, stationDistanceFilters]);
+  }, [filterDate, minSquareFootage, sortFilteredData, showMissingFtg, stationDistanceFilters, hidden, favourites, showFavourite, showHidden]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -128,7 +186,7 @@ function App() {
       importedOnTheMarketData.forEach(hydrateListing);
       importedZooplaData.forEach(hydrateListing);
 
-      const importedData = [...importedRightmoveData, ...importedOnTheMarketData, ...importedZooplaData];
+      const importedData: ListingWithState[] = [...importedRightmoveData, ...importedOnTheMarketData, ...importedZooplaData].map(x => { return { listing: x, state: { isHidden: false, isFavourite: true } } });
       originalData.current = importedData;
       filterAndSortData();
     };
@@ -284,14 +342,29 @@ function App() {
       <div>
         {paginator}
         <div style={{ overflowY: 'hidden' }}>
-          {paginatedData.map((listing) => (
-            <Listing
-              key={listing.listingId}
+          {paginatedData.map((listingWithState) => {
+            const listing = listingWithState.listing;
+            const isHidden = listingWithState.state.isHidden;
+            const isFavourite = listingWithState.state.isFavourite;
+            // Redundant checks but 
+            if (isHidden && !showHidden) {
+              return;
+            }
+            if (!isFavourite && showFavourite) {
+              return;
+            }
+            return <Listing
+              key={`${listing.site}${listing.listingId}`}
               listing={listing}
-              showFavourite={showFavourite}
-              showHidden={showHidden}
+              isHidden={isHidden}
+              addHidden={addHidden}
+              removeHidden={removeHidden}
+              isFavourite={isFavourite}
+              addFavourite={addFavourite}
+              removeFavourite={removeFavourite}
             />
-          ))}
+          }
+          )}
         </div>
         {paginator}
       </div>

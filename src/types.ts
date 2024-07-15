@@ -1,3 +1,4 @@
+import { Category } from "./set-category";
 import { StationName } from "./transport";
 
 export type Tenure = "freehold" | "leasehold" | "share of freehold" | "shared ownership" | "none" | "other";
@@ -6,7 +7,7 @@ export interface ListingDebug {
   footageResolution: "listed" | "in-text" | "gpt-image" | "unresolved";
 }
 
-export type Sites = "rightmove" | "onthemarket" | "zoopla";
+export type Site = "rightmove" | "onthemarket" | "zoopla";
 
 export interface PropertyListing {
   listingId: number; // also in URL
@@ -20,7 +21,7 @@ export interface PropertyListing {
   tenure: Tenure;
   imageUrls: string[];
   debug: ListingDebug;
-  site: Sites | null;
+  site: Site;
   nearestStations: NearestStation[] | null; // Contains debug information at [1]
 }
 

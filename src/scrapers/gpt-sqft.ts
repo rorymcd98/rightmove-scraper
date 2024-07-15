@@ -3,7 +3,7 @@ require('dotenv').config();
 import { Log } from "crawlee";
 import OpenAI from "openai";
 import { Page } from "playwright";
-import { Sites } from "../types";
+import { Site } from "../types";
 
 const openai = new OpenAI();
 
@@ -78,7 +78,7 @@ async function askGptForSqrFootage(floorPlanUrl: string): Promise<number | undef
     }
 }
 
-export async function getSquareFootageFromGptAsync(page: Page, log: Log, site: Sites): Promise<number | undefined> {
+export async function getSquareFootageFromGptAsync(page: Page, log: Log, site: Site): Promise<number | undefined> {
 
     let floorPlanUrl;
     if (site == "rightmove") floorPlanUrl = await getRightmoveFloorPlanUrlAsync(page);
