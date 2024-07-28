@@ -9,6 +9,8 @@ export interface ListingDebug {
 
 export type Site = "rightmove" | "onthemarket" | "zoopla";
 
+export type RoomDimension = [number, number];
+
 export interface PropertyListing {
   listingId: number; // also in URL
   url: string;
@@ -18,6 +20,7 @@ export interface PropertyListing {
   price: number;
   adDate: Date | null;
   squareFootage: number | null;
+  roomDimensions: RoomDimension[] | null;
   tenure: Tenure;
   imageUrls: string[];
   debug: ListingDebug;

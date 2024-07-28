@@ -6,6 +6,7 @@ export async function getNearestStationsAsync(page: Page): Promise<NearestStatio
     // Evaluate and fetch the elements
     const nearestStations = await page.$$eval('.poi-name', (elements) => {
         return elements
+            // poi-chips is seemingly only underground (we only want these good)
             .filter((elem) => elem.querySelector('.poi-chips')?.textContent?.length ?? 0 > 0)
             .map((filteredElem) => {
                 const distanceText = filteredElem.querySelector('.poi-distance')?.textContent;

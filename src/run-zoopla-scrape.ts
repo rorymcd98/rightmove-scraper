@@ -13,7 +13,7 @@ const SearchUrls = {
   [Category.general]:
     "https://www.zoopla.co.uk/for-sale/property/regents-park/?beds_min=2&polyenc=gvhyH~uQ~VtkUuYv_CyyAvXqdDc%7B%40mtCa%60EuqAylDua%40eoEuAoyCti%40myCltC%7DpC~qG%60%7B%40l%7C%40jfD&price_max=575000&q=Regent%27s%20Park%2C%20London&radius=0&results_sort=newest_listings&search_source=for-sale",
   [Category.jamie]:
-    "NAN"
+    "https://www.zoopla.co.uk/for-sale/map/property/station/tube/kings-cross-st-pancras/?beds_min=2&price_max=550000&q=King%27s+Cross+St.+Pancras+Station%2C+London&results_sort=newest_listings&search_source=for-sale&radius=0&hidePoly=false&polyenc=k%60nyHvf%5BfcCkhCbg%40hGne%40vMhRrZjDrTt%40vVf%40~eCxYpeCst%40jgA_Vbk%40eItKaOvS%7Bd%40hKmk%40%7Ci%40mtAiCoaAutCepArgB%7DaB%7BcBoGwsAx_%40mvA%60TyiAyzAdjAufBdPohC%7DcGnoBikDr%7CBq%7BAzuA%7C%40vbArAbu%40n%5DfIrQj%5EyRgDksC%7Db%40qiB%7B~%40yhB_VsyB%60%7BAm%5BfOn%7CBzMxrBbh%40us%40ry%40feFig%40%60%5DiYfn%40bArQaN%60~%40mUxy%40nFbdB"
 };
 
 function createZooplaIndexedUrl(baseUrl: string, index: number): string {
@@ -42,7 +42,7 @@ const extraHTTPHeaders = {
 
 const runZooplaScrape = async () => {
   const startingIndex = 1;
-  const endingIndex = 6;
+  const endingIndex = 20;
   const step = 1; // zoopla default
   const indexPageUrls = createZooplaIndexedUrls(url, startingIndex, endingIndex, step);
 

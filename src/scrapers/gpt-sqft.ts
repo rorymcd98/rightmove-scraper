@@ -3,9 +3,10 @@ require('dotenv').config();
 import { Log } from "crawlee";
 import OpenAI from "openai";
 import { Page } from "playwright";
-import { Site } from "../types";
+import { RoomDimension, Site } from "../types";
 
 const openai = new OpenAI();
+const FloorPlanUrls = new Map<string, string | undefined>();
 
 async function getRightmoveFloorPlanUrlAsync(page: Page): Promise<string | null> {
     const candidates = await page.$$eval("img", (imgs) => {
@@ -25,14 +26,14 @@ async function getZooplaFloorPlanUrlAsync(page: Page): Promise<string | null> {
 
     const lastSource = floorPlanImage.locator('source').last();
 
-    if (lastSource == null || ! await lastSource.isVisible()) {
-        return null;
-    }
+    const floorPlanUrl = (await lastSource.getAttribute("srcset"))?.replace("480/360", "1200/900")
+        .split(" ")
+        .at(0)
+        ?.replace(":p", "");
 
-    const floorPlanUrl = (await lastSource.getAttribute("srcset"))?.replace("480/360", "1200/900").split(" ").at(0)?.replace(":p", "");
-    console.log(floorPlanUrl);
     return floorPlanUrl ?? null;
 }
+
 
 async function getOnTheMarketFloorPlanUrlAsync(page: Page): Promise<string | null> {
     if (await page.getByRole('button', { name: 'Floorplan' }).isHidden()) return null;
@@ -78,17 +79,32 @@ async function askGptForSqrFootage(floorPlanUrl: string): Promise<number | undef
     }
 }
 
-export async function getSquareFootageFromGptAsync(page: Page, log: Log, site: Site): Promise<number | undefined> {
-
+async function getFloorPlan(page: Page, site: Site, identifier: string, log: Log) {
     let floorPlanUrl;
-    if (site == "rightmove") floorPlanUrl = await getRightmoveFloorPlanUrlAsync(page);
-    if (site == "zoopla") floorPlanUrl = await getZooplaFloorPlanUrlAsync(page);
-    if (site == "onthemarket") floorPlanUrl = await getOnTheMarketFloorPlanUrlAsync(page);
+    if (FloorPlanUrls.has(identifier)) {
+        floorPlanUrl = FloorPlanUrls.get(identifier);
+    } else {
+        if (site == "rightmove") floorPlanUrl = await getRightmoveFloorPlanUrlAsync(page);
+        if (site == "zoopla") floorPlanUrl = await getZooplaFloorPlanUrlAsync(page);
+        if (site == "onthemarket") floorPlanUrl = await getOnTheMarketFloorPlanUrlAsync(page);
+    }
+
+    FloorPlanUrls.set(identifier, floorPlanUrl ?? undefined)
 
     if (floorPlanUrl == null) {
         log.warning("Something went wrong trying to find the floor plan img src");
         return;
     }
+
+    return floorPlanUrl;
+}
+
+
+export async function getSquareFootageFromGptAsync(page: Page, log: Log, site: Site, identifier: string): Promise<number | undefined> {
+    const floorPlanUrl = await getFloorPlan(page, site, identifier, log);
+
+    if (floorPlanUrl == null) return;
+
     const gptSqrFootage = await askGptForSqrFootage(floorPlanUrl);
 
     if (gptSqrFootage == null) {
@@ -103,4 +119,49 @@ export async function getSquareFootageFromGptAsync(page: Page, log: Log, site: S
 }
 
 
+// Room dimensions
+
+async function askGptForRoomDimensions(floorPlanUrl: string, log: Log): Promise<RoomDimension[] | null> {
+    const response = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [
+            {
+                role: "user",
+                content: [
+                    { type: "text", text: "This image is a floor-plan and will contain some bedrooms. Give me just the XY dimensions in meters of the bedrooms (only) in an array of square bracket tuples (don't inlcude the units) e.g. [[1.12, 2.34], [4.23, 2.12]]. The dimensions of each bedroom will typically in the form: d.ddm x d.ddm. Do not include any other text in the response." },
+                    {
+                        type: "image_url",
+                        image_url: {
+                            url: floorPlanUrl,
+                        },
+                    },
+                ],
+            },
+        ],
+    });
+    const res = response.choices[0].message.content;
+    if (res == null) {
+        log.info(`Could not get room dimension response from GPT for: ${floorPlanUrl}`)
+        return null;
+    }
+    try {
+        let roomDimensions = JSON.parse(res);
+        if (Array.isArray(roomDimensions)) {
+            roomDimensions = roomDimensions.filter(x => x != null).map(x => [x[0] ?? 0, x[1] ?? 0])
+        }
+        return roomDimensions;
+    }
+    catch {
+        log.info(`Failed to parse json: ${res}`)
+        return null;
+    }
+}
+
+export async function getRoomDimensionsFromGptAsync(page: Page, log: Log, site: Site, identifier: string): Promise<RoomDimension[] | null> {
+    const floorPlanUrl = await getFloorPlan(page, site, identifier, log);
+
+    if (floorPlanUrl == null) return null;
+
+    return await askGptForRoomDimensions(floorPlanUrl, log);
+}
 

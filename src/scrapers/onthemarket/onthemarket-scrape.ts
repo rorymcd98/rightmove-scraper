@@ -2,10 +2,9 @@ import { PlaywrightCrawler, Dataset, Log, Request } from "crawlee";
 import { Page } from "playwright";
 import { ListingDebug, OnTheMarketListing, Tenure } from "../../types";
 import { findSquareFootageNlpAsync } from "../nlp-sqft";
-import { getSquareFootageFromGptAsync } from "../gpt-sqft";
+import { getRoomDimensionsFromGptAsync, getSquareFootageFromGptAsync } from "../gpt-sqft";
 import { findAllOnTheMarketImagesAsync } from "../find-images";
 import { getNearestStationsAsync } from "./onthemarket-stations";
-import currentCategory from "../../set-category";
 
 ///////////// Scrape data from individual listings
 
@@ -93,7 +92,7 @@ async function findTenureAsync(page: Page, log: Log): Promise<Tenure> {
   }
 }
 
-async function findSquareFootageAsync(page: Page, log: Log): Promise<[number, ListingDebug["footageResolution"]] | undefined> {
+async function findSquareFootageAsync(page: Page, log: Log, identifier: string): Promise<[number, ListingDebug["footageResolution"]] | undefined> {
   const squareFootSibling = await page.$("svg[data-icon=ruler-combined]");
   const squareFootParent = await squareFootSibling?.evaluateHandle((node) => node.parentElement);
 
@@ -105,7 +104,7 @@ async function findSquareFootageAsync(page: Page, log: Log): Promise<[number, Li
     var nlpSquareFootage = await findSquareFootageNlpAsync(page);
     if (nlpSquareFootage == undefined) {
       // do the chat gpt thing here
-      const squareFootageFromGpt = await getSquareFootageFromGptAsync(page, log, "onthemarket");
+      const squareFootageFromGpt = await getSquareFootageFromGptAsync(page, log, "onthemarket", identifier);
       if (squareFootageFromGpt == undefined) return;
       return [squareFootageFromGpt, "gpt-image"];
     }
@@ -132,7 +131,8 @@ export function createOnTheMarketListingScraper(listingIdToDateMap: Map<number, 
         log.error("Expected the url to not be null - terminating")
         return;
       }
-      const listingId = getIdFromUrl(request.loadedUrl);
+      const listingId = getIdFromUrl(request.url);
+      const identifier = listingId + "onthemarket";
 
       const rawPriceNumber_pounds = await findPriceInPoundsAsync(page, log);
 
@@ -140,17 +140,19 @@ export function createOnTheMarketListingScraper(listingIdToDateMap: Map<number, 
 
       const imageUrls = await findAllOnTheMarketImagesAsync(page);
 
-      const squareFootageValue = await findSquareFootageAsync(page, log);
 
       const stationNames = await getNearestStationsAsync(page);
 
-      if (squareFootageValue == undefined) {
-        log.warning(`$Listing doesn't have square footage`);
-      }
 
       const splitTitle = splitString(pageTitle, ", ");
       const titleMain = splitTitle[0];
       const location = splitTitle[1];
+
+      const squareFootageValue = await findSquareFootageAsync(page, log, identifier);
+      if (squareFootageValue == undefined) {
+        log.warning(`$Listing doesn't have square footage`);
+      }
+      const roomDimensions = await getRoomDimensionsFromGptAsync(page, log, "onthemarket", identifier);
 
       const indexPage: OnTheMarketListing =
       {
@@ -164,6 +166,7 @@ export function createOnTheMarketListingScraper(listingIdToDateMap: Map<number, 
         price: rawPriceNumber_pounds ?? 0,
         tenure: tenureValue,
         squareFootage: squareFootageValue?.[0] ?? null,
+        roomDimensions: roomDimensions,
         debug: {
           footageResolution: squareFootageValue?.[1] ?? "unresolved",
         },

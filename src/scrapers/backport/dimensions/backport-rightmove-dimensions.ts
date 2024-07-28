@@ -1,7 +1,7 @@
 import { Configuration, Dataset, PlaywrightCrawler } from "crawlee";
-import { getIdFromUrl } from "../rightmove/rightmove-scrape";
-import { NearestStation, RightmoveListing } from "../../types";
-import { getNearestStationsAsync } from "../rightmove/rightmove-stations";
+import { getIdFromUrl } from "../../rightmove/rightmove-scrape";
+import { RightmoveListing, RoomDimension } from "../../../types";
+import { getRoomDimensionsFromGptAsync } from "../../gpt-sqft";
 
 // copied this because it's easier
 function buildRightmoveListingUrls(listingIds: string[]) {
@@ -10,27 +10,27 @@ function buildRightmoveListingUrls(listingIds: string[]) {
 
 const config = Configuration.getGlobalConfig();
 
-type BackportStations = { listingId: number, nearestStations: NearestStation[] };
+type BackportRoomDimensions = { listingId: number, roomDimensions: RoomDimension[] | null };
 
 async function Main() {
 
     const allDataset = await Dataset.open<{ listings: RightmoveListing[] }>("all-rightmove");
     const allListings = await allDataset.getData();
 
-    config.set("defaultRequestQueueId", "backport-stations-rightmove");
-    config.set("defaultDatasetId", "backport-stations-rightmove");
-    const backporter = createNearestStationsBackporter();
+    config.set("defaultRequestQueueId", "backport-dimensions-rightmove");
+    config.set("defaultDatasetId", "backport-dimensions-rightmove");
+    const backporter = createNearestDimensionsBackporter();
 
-    const urls = buildRightmoveListingUrls(allListings.items.flatMap(x => x.listings).map(x => x.listingId.toString()));
+    const urls = buildRightmoveListingUrls(allListings.items.flatMap(x => x.listings).map(x => x.listingId.toString()).slice(-500,));
     backporter.run(urls)
 }
 
 async function CreateNewDataset() {
-    const backportDataset = await Dataset.open<BackportStations>("backport-stations-rightmove");
-    const backportMap = new Map<Number, NearestStation[]>();
+    const backportDataset = await Dataset.open<BackportRoomDimensions>("backport-dimensions-rightmove");
+    const backportMap = new Map<Number, RoomDimension[] | null>();
 
     (await backportDataset.getData()).items.forEach(x => {
-        backportMap.set(x.listingId, x.nearestStations);
+        backportMap.set(x.listingId, x.roomDimensions);
     });
 
     const allDataset = await Dataset.open<{ listings: RightmoveListing[] }>("all-rightmove");
@@ -44,8 +44,8 @@ async function CreateNewDataset() {
     }
 
     for (const x of uniqueListings.values()) {
-        const nearest = backportMap.get(x.listingId);
-        x.nearestStations = nearest ?? null;
+        const rooms = backportMap.get(x.listingId);
+        x.roomDimensions = rooms ?? null;
     }
     const allDataset2 = await Dataset.open<{ listings: RightmoveListing[] }>("all-rightmove2");
     await allDataset2.pushData({ listings: Array.from(uniqueListings.values()) })
@@ -55,29 +55,29 @@ async function CreateNewDataset() {
 // Main();
 CreateNewDataset();
 
-function createNearestStationsBackporter() {
+function createNearestDimensionsBackporter() {
     const crawler = new PlaywrightCrawler({
         async requestHandler({ request, page, log }) {
             const pageTitle = await page.title();
-            log.info(`Title of ${request.loadedUrl} is '${pageTitle}'`);
+            log.info(`Title of ${request.url} is '${pageTitle}'`);
 
-            if (request.loadedUrl == undefined) {
+            if (request.url == undefined) {
                 log.error("Expected the url to not be null - terminating")
                 return;
             }
 
-            const stationNames = await getNearestStationsAsync(page);
+            const dimensionNames = await getRoomDimensionsFromGptAsync(page, log, "rightmove");
 
-            const listingId = getIdFromUrl(request.loadedUrl);
+            const listingId = getIdFromUrl(request.url);
 
-            const res: BackportStations =
+            const res: BackportRoomDimensions =
             {
                 listingId: listingId,
-                nearestStations: stationNames
+                roomDimensions: dimensionNames
             };
 
             // Push the list of urls to the dataset
-            await Dataset.pushData<BackportStations>(res);
+            await Dataset.pushData<BackportRoomDimensions>(res);
         },
         // Uncomment this option to see the browser window.
         headless: true,

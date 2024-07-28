@@ -1,10 +1,10 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import './App.css';
 import Listing from './Listing';
-import { LineName, PropertyListing, Site } from '../../types';
+import { LineName, PropertyListing, RoomDimension, Site } from '../../types';
 import { stations } from '../../transport';
 
-type SortCriteria = "date" | "squareFootage";
+type SortCriteria = "date" | "squareFootage" | "limittingRoomArea";
 type LineNameMap = Map<LineName, number>;
 export type ListingTag = {
   listingId: number,
@@ -52,6 +52,24 @@ function filterDataByDistances(filter: LineNameMap, data: ListingWithState[]): L
   });
 }
 
+function filterDataByLimittingRoom(limittingRoomNumber: number, limittingDimension: number, limittingArea: number, data: ListingWithState[]): ListingWithState[] {
+  if (limittingRoomNumber == 0) {
+    return data;
+  }
+  let res = data.filter(x => x.listing.roomDimensions?.length ?? 0 >= limittingRoomNumber);
+  res = res.filter(x => {
+    const limittingRoom = x.listing.roomDimensions?.at(limittingRoomNumber - 1) ?? [0, 0];
+    if (Math.min(...limittingRoom) < limittingDimension) {
+      return false;
+    }
+    if (limittingRoom[0] * limittingRoom[1] < limittingArea) {
+      return false
+    }
+    return true;
+  })
+  return res;
+}
+
 
 
 function App() {
@@ -63,6 +81,22 @@ function App() {
   const [filteredData, setFilteredData] = useState<ListingWithState[]>([]);
   const [showMissingFtg, setShowMissingFtg] = useState<boolean>(() => JSON.parse(localStorage.getItem('showMissingFtg') || 'true'));
   const [hidden, setHidden] = useState<ListingTag[]>(() => JSON.parse(localStorage.getItem('hiddenListings') || '[]'));
+
+  // Room limits
+  const [limittingRoomNumber, setLimittingRoomNumber] = useState<number>(() => JSON.parse(localStorage.getItem('limitingRoomNumber') || '2'));
+  const [limittingArea, setLimittingArea] = useState<number>(() => JSON.parse(localStorage.getItem('limitingRoomArea') || '8'));
+  const [limittingDimension, setLimittingDimension] = useState<number>(() => JSON.parse(localStorage.getItem('limitingRoomDimension') || '2.0'));
+
+  useEffect(() => {
+    localStorage.setItem('limittingRoom', JSON.stringify(limittingRoomNumber));
+  }, [limittingRoomNumber]);
+  useEffect(() => {
+    localStorage.setItem('limitingRoomArea', JSON.stringify(limittingArea));
+  }, [limittingArea]);
+  useEffect(() => {
+    localStorage.setItem('limitingRoomDimension', JSON.stringify(limittingDimension));
+  }, [limittingDimension]);
+
   useEffect(() => {
     localStorage.setItem('hiddenListings', JSON.stringify(hidden));
   }, [hidden]);
@@ -136,6 +170,19 @@ function App() {
         const secondDate = a.listing.adDate ? new Date(a.listing.adDate).getTime() : new Date(0).getTime();
         return firstDate - secondDate;
       });
+    } else if (sortCriteria === "limittingRoomArea") {
+      if (limittingRoomNumber <= 0) return data;
+
+      const scoreRoom = (rooms: RoomDimension[] | null) => {
+        if (rooms == null) return -2;
+        if (rooms.length < limittingRoomNumber) return -1;
+        const room = rooms.at(limittingRoomNumber - 1) as RoomDimension;
+        return (room[0] * room[1]);
+      }
+
+      sortedData.sort((a, b) => {
+        return scoreRoom(b.listing.roomDimensions) - scoreRoom(a.listing.roomDimensions)
+      });
     }
     return sortedData;
   }, [sortCriteria]);
@@ -143,12 +190,14 @@ function App() {
   const hydrateListing = useCallback((listing: PropertyListing) => {
     listing.adDate = listing.adDate ? new Date(listing.adDate) : null;
     listing.site = listing.site ?? "rightmove";
+    listing.roomDimensions = listing.roomDimensions?.sort((a, b) => (b[0] * b[1]) - (a[0] * a[1])) ?? null;
   }, []);
 
   const filterAndSortData = useCallback(() => {
     let data = originalData.current;
 
     data = filterDataByDistances(stationDistanceFilters, data);
+    data = filterDataByLimittingRoom(limittingRoomNumber, limittingDimension, limittingArea, data);
 
     if (filterDate) {
       const date = new Date(filterDate);
@@ -174,7 +223,7 @@ function App() {
     data = sortFilteredData(data);
     setFilteredData(data);
     setCurrentPage(1); // Reset to the first page after filtering
-  }, [filterDate, minSquareFootage, sortFilteredData, showMissingFtg, stationDistanceFilters, hidden, favourites, showFavourite, showHidden]);
+  }, [filterDate, minSquareFootage, sortFilteredData, showMissingFtg, stationDistanceFilters, hidden, favourites, showFavourite, showHidden, limittingArea, limittingDimension, limittingRoomNumber]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -263,7 +312,7 @@ function App() {
       <div style={{ display: "inline-flex", flexDirection: "row", width: "100%", justifyContent: "space-around" }}>
         <div>
           <button onClick={() => setShowStationDropdown(!showStationDropdown)}>
-            {showStationDropdown ? "Hide stations" : "Show stations"}
+            {showStationDropdown ? "Hide lines" : "Show lines"}
           </button>
           {showStationDropdown &&
             <div style={{ position: "fixed", display: "flex", flexDirection: "column", textAlign: "left", backgroundColor: "gray", padding: "5px" }}>
@@ -290,6 +339,7 @@ function App() {
             <option value="" disabled>Select Sorting</option>
             <option value="date">Date</option>
             <option value="squareFootage">Square Footage</option>
+            <option value="limittingRoomArea">Limitting room</option>
           </select>
         </div>
         <div style={{ "display": "flex", flexDirection: "column", textAlign: "left" }}>
@@ -337,7 +387,45 @@ function App() {
             Hide missing square footage
           </label>
         </div>
-        <button onClick={filterAndSortData}>Apply Filters (Results: {filteredData.length})</button>
+        <div style={{ display: "flex", flexDirection: "column" }}>
+          <div style={{ display: "flex", flexDirection: "column", textAlign: "left" }}>
+            <div style={{ display: "flex", alignItems: "center", margin: "5px 0" }}>
+              <span style={{ flexGrow: 1 }}>Limit by:</span>
+              <input
+                style={{ marginLeft: '5px', width: "3rem" }}
+                type="number"
+                value={limittingRoomNumber}
+                onChange={(e) => setLimittingRoomNumber(parseInt(e.target.value))}
+                step="1"
+              />
+            </div>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", textAlign: "left" }}>
+            <div style={{ display: "flex", alignItems: "center", margin: "5px 0" }}>
+              <span style={{ flexGrow: 1 }}>Min area:</span>
+              <input
+                style={{ marginLeft: '5px', width: "3rem" }}
+                type="number"
+                value={limittingArea}
+                onChange={(e) => setLimittingArea(parseFloat(e.target.value))}
+                step="0.1"
+              />
+            </div>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", textAlign: "left" }}>
+            <div style={{ display: "flex", alignItems: "center", margin: "5px 0" }}>
+              <span style={{ flexGrow: 1 }}>Min dimension:</span>
+              <input
+                style={{ marginLeft: '5px', width: "3rem" }}
+                type="number"
+                value={limittingDimension}
+                onChange={(e) => setLimittingDimension(parseFloat(e.target.value))}
+                step="0.1"
+              />
+            </div>
+          </div>
+        </div>
+
       </div>
       <div>
         {paginator}

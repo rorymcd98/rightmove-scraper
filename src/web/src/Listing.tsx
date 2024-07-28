@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { PropertyListing } from '../../types';
+import { PropertyListing, RoomDimension } from '../../types';
 import { StationName, stations } from "../../transport";
 import { ListingTag } from "./App";
 
@@ -11,6 +11,11 @@ interface ListingProps {
   isHidden: boolean;
   addHidden: (listing: ListingTag) => void;
   removeHidden: (listing: ListingTag) => void;
+}
+
+function formatRoomDimensions(roomDimensions: RoomDimension[]) {
+  const roomString = "(" + roomDimensions.map(x => x[0].toFixed(1) + "m:" + x[1].toFixed(1) + "m").join(", ") + ")";
+  return roomString;
 }
 
 const Listing: React.FC<ListingProps> = ({ listing, isFavourite, addFavourite, removeFavourite, isHidden, addHidden, removeHidden }) => {
@@ -45,7 +50,7 @@ const Listing: React.FC<ListingProps> = ({ listing, isFavourite, addFavourite, r
 
   return (
     <div style={{ border: '1px solid #ddd', margin: '10px', padding: '10px' }}>
-      <h2>{listing.title}</h2>
+      <h2>{listing.title} - {listing.tenure}</h2>
       <div style={{ display: 'flex', overflowX: 'auto', maxHeight: '200px', alignItems: "center", overflowY: "hidden" }}>
         {listing.imageUrls.slice(0, imagesLimit).map((imageUrl, index) =>
           <img key={index} src={imageUrl} alt="listing" style={{ maxHeight: '200px', marginRight: '10px' }} />
@@ -58,7 +63,9 @@ const Listing: React.FC<ListingProps> = ({ listing, isFavourite, addFavourite, r
         <div style={{ paddingRight: '10px' }}>
           <p>Square Footage: {listing.squareFootage}</p>
           <p>Price: {Number(listing.price).toLocaleString('en-GB', { style: 'currency', currency: 'GBP' })}</p>
-          <p>Tenure: {listing.tenure}</p>
+          {listing.roomDimensions != null &&
+            <p>Rooms ({listing.roomDimensions.length}):  {formatRoomDimensions(listing.roomDimensions)}</p>
+          }
         </div>
         <div style={{ textAlign: 'center' }}>
           <p>Date: {listing.adDate?.toLocaleDateString()}</p>

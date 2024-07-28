@@ -2,7 +2,7 @@ import { PlaywrightCrawler, Dataset, Log, Request } from "crawlee";
 import { Page } from "playwright";
 import { ListingDebug, RightmoveListing, Tenure } from "../../types";
 import { findSquareFootageNlpAsync } from "../nlp-sqft";
-import { getSquareFootageFromGptAsync } from "../gpt-sqft";
+import { getRoomDimensionsFromGptAsync, getSquareFootageFromGptAsync } from "../gpt-sqft";
 import { findAllRightmoveImagesAsync } from "../find-images";
 import { getNearestStationsAsync } from "./rightmove-stations";
 import currentCategory from "../../set-category";
@@ -128,14 +128,14 @@ async function findTenureAsync(page: Page, log: Log): Promise<Tenure> {
   }
 }
 
-async function findSquareFootageAsync(page: Page, log: Log, request: Request): Promise<[number, ListingDebug["footageResolution"]] | undefined> {
+async function findSquareFootageAsync(page: Page, log: Log, request: Request, identifier: string): Promise<[number, ListingDebug["footageResolution"]] | undefined> {
   const squareFootElements = await findElementsEndingWithAsync(page, "p", " sq ft");
   const squareFootValue = squareFootElements?.at(0)?.replace(" sq ft", "");
   if (squareFootValue == undefined) {
     var nlpSquareFootage = await findSquareFootageNlpAsync(page);
     if (nlpSquareFootage == undefined) {
       // do the chat gpt thing here
-      const squareFootageFromGpt = await getSquareFootageFromGptAsync(page, log, "rightmove");
+      const squareFootageFromGpt = await getSquareFootageFromGptAsync(page, log, "rightmove", identifier);
       if (squareFootageFromGpt == undefined) return;
       return [squareFootageFromGpt, "gpt-image"];
     }
@@ -163,12 +163,7 @@ export function createRightmoveListingScraper() {
         return;
       }
       const listingId = getIdFromUrl(request.loadedUrl);
-
-      const squareFootageValue = await findSquareFootageAsync(page, log, request);
-
-      if (squareFootageValue == undefined) {
-        log.warning(`$Listing doesn't have square footage`);
-      }
+      const identifier = listingId + "rightmove";
 
       const addedOrReducedDate = await findAddedOrReducedDateOnListingAsync(page, log);
 
@@ -184,6 +179,13 @@ export function createRightmoveListingScraper() {
 
       const nearestStations = await getNearestStationsAsync(page);
 
+      const squareFootageValue = await findSquareFootageAsync(page, log, request, identifier);
+
+      if (squareFootageValue == undefined) {
+        log.warning(`$Listing doesn't have square footage`);
+      }
+      const roomDimensions = await getRoomDimensionsFromGptAsync(page, log, "rightmove", identifier);
+
       const listingDetails: RightmoveListing =
       {
         listingId: listingId,
@@ -196,6 +198,7 @@ export function createRightmoveListingScraper() {
         price: rawPriceNumber_pounds ?? 0,
         tenure: tenureValue,
         squareFootage: squareFootageValue?.[0] ?? null,
+        roomDimensions: roomDimensions,
         debug: {
           footageResolution: squareFootageValue?.[1] ?? "unresolved",
         },

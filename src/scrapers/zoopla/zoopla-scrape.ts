@@ -3,7 +3,7 @@ import { PlaywrightCrawler, Dataset, Log, Request } from "crawlee";
 import { ElementHandle, Page } from "playwright";
 import { IndexPage, IndexedListing, ListingDebug, ZooplaListing, Tenure } from "../../types";
 import { findSquareFootageNlpAsync } from "../nlp-sqft";
-import { getSquareFootageFromGptAsync } from "../gpt-sqft";
+import { getRoomDimensionsFromGptAsync, getSquareFootageFromGptAsync } from "../gpt-sqft";
 import { findAllZooplaImagesAsync } from "../find-images";
 import { getNearestStationsAsync } from "./zoopla-stations";
 import currentCategory from "../../set-category";
@@ -11,7 +11,8 @@ import currentCategory from "../../set-category";
 
 ///////////// Scrape data from individual listings
 
-function getIdFromUrl(url: string): number {
+export function getIdFromUrl(url: string): number {
+  console.log(url)
   const justTheId = url.split("details/")[1].split("/")[0];
   return parseInt(justTheId);
 }
@@ -141,14 +142,14 @@ async function findTenureAsync(page: Page, log: Log): Promise<Tenure> {
   }
 }
 
-async function findSquareFootageAsync(page: Page, log: Log, request: Request): Promise<[number, ListingDebug["footageResolution"]] | undefined> {
+async function findSquareFootageAsync(page: Page, log: Log, request: Request, identifier: string): Promise<[number, ListingDebug["footageResolution"]] | undefined> {
   const squareFootElements = await findElementsEndingWithAsync(page, "div", " sq. ft");
   const squareFootValue = squareFootElements?.at(0)?.replace(" sq. ft", "");
   if (squareFootValue == undefined) {
     var nlpSquareFootage = await findSquareFootageNlpAsync(page);
     if (nlpSquareFootage == undefined) {
       // do the chat gpt thing here
-      const squareFootageFromGpt = await getSquareFootageFromGptAsync(page, log, "zoopla");
+      const squareFootageFromGpt = await getSquareFootageFromGptAsync(page, log, "zoopla", identifier);
       if (squareFootageFromGpt == undefined) return;
       return [squareFootageFromGpt, "gpt-image"];
     }
@@ -178,12 +179,7 @@ export function createZooplaListingScraper(listingIdToDateMap: Map<number, Date>
         return;
       }
       const listingId = getIdFromUrl(request.loadedUrl);
-
-      const squareFootageValue = await findSquareFootageAsync(page, log, request);
-
-      if (squareFootageValue == undefined) {
-        log.warning(`$Listing doesn't have square footage`);
-      }
+      const identifier = listingId + "zoopla";
 
       const rawPriceNumber_pounds = await findPriceInPoundsAsync(page, log);
 
@@ -197,6 +193,12 @@ export function createZooplaListingScraper(listingIdToDateMap: Map<number, Date>
 
       const nearestStations = await getNearestStationsAsync(page);
 
+      const squareFootageValue = await findSquareFootageAsync(page, log, request, identifier);
+      if (squareFootageValue == undefined) {
+        log.warning(`$Listing doesn't have square footage`);
+      }
+      const roomDimensions = await getRoomDimensionsFromGptAsync(page, log, "zoopla", identifier);
+
       const indexPage: ZooplaListing =
       {
         listingId: listingId,
@@ -209,6 +211,7 @@ export function createZooplaListingScraper(listingIdToDateMap: Map<number, Date>
         price: rawPriceNumber_pounds ?? 0,
         tenure: tenureValue,
         squareFootage: squareFootageValue?.[0] ?? null,
+        roomDimensions: roomDimensions,
         debug: {
           footageResolution: squareFootageValue?.[1] ?? "unresolved",
         },

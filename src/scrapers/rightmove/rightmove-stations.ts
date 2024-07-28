@@ -14,6 +14,15 @@ export async function getNearestStationsAsync(page: Page): Promise<NearestStatio
     for (let i = 0; i < count; i++) {
         const listItem = listItems.nth(i);
 
+        // Check for the existence of the underground tag
+        const undergroundTag = await listItem.locator('svg[data-testid="svg-underground"]');
+        const undergroundTagCount = await undergroundTag.count();
+
+        if (undergroundTagCount === 0) {
+            // Skip this list item if it doesn't contain the underground tag
+            continue;
+        }
+
         const stationNameElement = await listItem.locator('.cGDiWU3FlTjqSs-F1LwK4');
         const distanceElement = await listItem.locator('._1ZY603T1ryTT3dMgGkM7Lg');
 
