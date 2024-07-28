@@ -3,5 +3,5 @@ export enum Category {
   jamie = "jamie",
 }
 // Sets the current search category - used to filter the 'current'
-const currentCategory = Category.jamie;
+const currentCategory = Category.general;
 export default currentCategory;

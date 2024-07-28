@@ -36,7 +36,7 @@ function buildRightmoveListingUrls(listingIds: string[]) {
 const url = SearchUrls[currentCategory];
 const runRightmoveScrape = async () => {
   const startingIndex = 0
-  const endingIndex = 500;
+  const endingIndex = 75;
   const step = 24; // rightmove default
   const indexPageUrls = createRightmoveIndexedUrls(url, startingIndex, endingIndex, step);
 

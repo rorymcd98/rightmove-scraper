@@ -42,7 +42,7 @@ const extraHTTPHeaders = {
 
 const runZooplaScrape = async () => {
   const startingIndex = 1;
-  const endingIndex = 20;
+  const endingIndex = 3;
   const step = 1; // zoopla default
   const indexPageUrls = createZooplaIndexedUrls(url, startingIndex, endingIndex, step);
 

@@ -36,7 +36,7 @@ function buildOnTheMarketListingUrls(listingIds: string[]) {
 const url = SearchUrls[currentCategory];
 const runOnTheMarketScrape = async () => {
   const startingIndex = 1;
-  const endingIndex = 6;
+  const endingIndex = 3;
   const step = 1; // onthemarket default
   const indexPageUrls = createOnTheMarketIndexedUrls(url, startingIndex, endingIndex, step);
 

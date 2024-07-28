@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import './App.css';
 import Listing from './Listing';
 import { LineName, PropertyListing, RoomDimension, Site } from '../../types';
-import { stations } from '../../transport';
+import { stations, StationName } from '../../transport';
 
 type SortCriteria = "date" | "squareFootage" | "limittingRoomArea";
 type LineNameMap = Map<LineName, number>;
@@ -18,6 +18,10 @@ type ListingWithState = {
     isFavourite: boolean,
   }
 }
+
+const filterStations: StationName[] = [
+  "Archway", "King's Cross St Pancras", "South Kensington", "Gloucester Road", "Earl's Court", "Warwick Avenue", "Fulham Broadway", "Tufnell Park", "Kentish Town", "Camden Town", "Mornington Crescent", "Euston", "Hampstead", "Belsize Park", "Warren Street", "Great Portland Street", "Baker Street", "West Hampstead", "Finchley Road", "Paddington", "Edgware Road", "Ladbroke Grove", "Westbourne Park", "Royal Oak", "Green Park", "Marble Arch", "Oxford Circus", "Holland Park", "Bayswater", "Queensway", "Notting Hill Gate", "South Kensington", "Sloane Square", "Pimlico", "St James's Park", "Victoria", "Westminster", "Charing Cross", "Embankment", "Piccadilly Circus", "Highbury & Islington", "Holloway Road", "Arsenal", "Manor House", "Angel", "Old Street"
+];
 
 // If there is a station with a defined name
 // If that station is on a line included in a positive (valid) filter
@@ -39,6 +43,7 @@ function filterDataByDistances(filter: LineNameMap, data: ListingWithState[]): L
     if (!property.listing.nearestStations) return false;
     return property.listing.nearestStations.some(station => {
       if (!station.stationName) return false;
+      if (!filterStations.includes(station.stationName)) return false;
       const lines = stations[station.stationName];
       return lines.some(line => {
         const distance = posStationFilters.get(line); // Use posStationFilters instead of filter
@@ -52,12 +57,16 @@ function filterDataByDistances(filter: LineNameMap, data: ListingWithState[]): L
   });
 }
 
-function filterDataByLimittingRoom(limittingRoomNumber: number, limittingDimension: number, limittingArea: number, data: ListingWithState[]): ListingWithState[] {
+function filterDataByLimittingRoom(limittingRoomNumber: number, limittingDimension: number, limittingArea: number, data: ListingWithState[], showMissingRoomDimensions: boolean): ListingWithState[] {
   if (limittingRoomNumber == 0) {
     return data;
   }
-  let res = data.filter(x => x.listing.roomDimensions?.length ?? 0 >= limittingRoomNumber);
+
+
+
+  let res = data.filter(x => (((x.listing.roomDimensions == null || x.listing.roomDimensions.length == 0) && showMissingRoomDimensions) && showMissingRoomDimensions) || (x.listing.roomDimensions?.length ?? 0 >= limittingRoomNumber));
   res = res.filter(x => {
+    if ((x.listing.roomDimensions == null || x.listing.roomDimensions.length == 0) && showMissingRoomDimensions) return true;
     const limittingRoom = x.listing.roomDimensions?.at(limittingRoomNumber - 1) ?? [0, 0];
     if (Math.min(...limittingRoom) < limittingDimension) {
       return false;
@@ -80,6 +89,7 @@ function App() {
   const [showHidden, setShowHidden] = useState<boolean>(() => JSON.parse(localStorage.getItem('showHidden') || 'false'));
   const [filteredData, setFilteredData] = useState<ListingWithState[]>([]);
   const [showMissingFtg, setShowMissingFtg] = useState<boolean>(() => JSON.parse(localStorage.getItem('showMissingFtg') || 'true'));
+  const [showMissingRoomDimensions, setShowMissingRoomDimensions] = useState<boolean>(() => JSON.parse(localStorage.getItem('showMissingRoomDimensions') || 'true'));
   const [hidden, setHidden] = useState<ListingTag[]>(() => JSON.parse(localStorage.getItem('hiddenListings') || '[]'));
 
   // Room limits
@@ -197,7 +207,7 @@ function App() {
     let data = originalData.current;
 
     data = filterDataByDistances(stationDistanceFilters, data);
-    data = filterDataByLimittingRoom(limittingRoomNumber, limittingDimension, limittingArea, data);
+    data = filterDataByLimittingRoom(limittingRoomNumber, limittingDimension, limittingArea, data, showMissingRoomDimensions);
 
     if (filterDate) {
       const date = new Date(filterDate);
@@ -223,7 +233,7 @@ function App() {
     data = sortFilteredData(data);
     setFilteredData(data);
     setCurrentPage(1); // Reset to the first page after filtering
-  }, [filterDate, minSquareFootage, sortFilteredData, showMissingFtg, stationDistanceFilters, hidden, favourites, showFavourite, showHidden, limittingArea, limittingDimension, limittingRoomNumber]);
+  }, [filterDate, minSquareFootage, sortFilteredData, showMissingFtg, stationDistanceFilters, hidden, favourites, showFavourite, showHidden, limittingArea, limittingDimension, limittingRoomNumber, showMissingRoomDimensions]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -270,6 +280,10 @@ function App() {
   useEffect(() => {
     localStorage.setItem('showMissingFtg', JSON.stringify(showMissingFtg));
   }, [showMissingFtg]);
+
+  useEffect(() => {
+    localStorage.setItem('showMissingRoomDimensions', JSON.stringify(showMissingRoomDimensions));
+  }, [showMissingRoomDimensions]);
 
   useEffect(() => {
     localStorage.setItem('stationDistanceFilters', JSON.stringify(Array.from(stationDistanceFilters.entries())));
@@ -390,7 +404,7 @@ function App() {
         <div style={{ display: "flex", flexDirection: "column" }}>
           <div style={{ display: "flex", flexDirection: "column", textAlign: "left" }}>
             <div style={{ display: "flex", alignItems: "center", margin: "5px 0" }}>
-              <span style={{ flexGrow: 1 }}>Limit by:</span>
+              <span style={{ flexGrow: 1 }}>Limit by room:</span>
               <input
                 style={{ marginLeft: '5px', width: "3rem" }}
                 type="number"
@@ -402,7 +416,7 @@ function App() {
           </div>
           <div style={{ display: "flex", flexDirection: "column", textAlign: "left" }}>
             <div style={{ display: "flex", alignItems: "center", margin: "5px 0" }}>
-              <span style={{ flexGrow: 1 }}>Min area:</span>
+              <span style={{ flexGrow: 1 }}>Min area (m2):</span>
               <input
                 style={{ marginLeft: '5px', width: "3rem" }}
                 type="number"
@@ -414,7 +428,7 @@ function App() {
           </div>
           <div style={{ display: "flex", flexDirection: "column", textAlign: "left" }}>
             <div style={{ display: "flex", alignItems: "center", margin: "5px 0" }}>
-              <span style={{ flexGrow: 1 }}>Min dimension:</span>
+              <span style={{ flexGrow: 1 }}>Min dimension (m):</span>
               <input
                 style={{ marginLeft: '5px', width: "3rem" }}
                 type="number"
@@ -424,6 +438,15 @@ function App() {
               />
             </div>
           </div>
+          <label style={{ opacity: limittingRoomNumber > 0 ? "100%" : "20%" }}>
+            <input
+              disabled={limittingRoomNumber <= 0}
+              type="checkbox"
+              checked={showMissingRoomDimensions}
+              onChange={() => setShowMissingRoomDimensions(!showMissingRoomDimensions)}
+            />
+            Show 0 rooms
+          </label>
         </div>
 
       </div>
