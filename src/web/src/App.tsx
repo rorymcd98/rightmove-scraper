@@ -20,7 +20,7 @@ type ListingWithState = {
 }
 
 const filterStations: StationName[] = [
-  "Archway", "King's Cross St Pancras", "South Kensington", "Gloucester Road", "Earl's Court", "Warwick Avenue", "Fulham Broadway", "Tufnell Park", "Kentish Town", "Camden Town", "Mornington Crescent", "Euston", "Hampstead", "Belsize Park", "Warren Street", "Great Portland Street", "Baker Street", "West Hampstead", "Finchley Road", "Paddington", "Edgware Road", "Ladbroke Grove", "Westbourne Park", "Royal Oak", "Green Park", "Marble Arch", "Oxford Circus", "Holland Park", "Bayswater", "Queensway", "Notting Hill Gate", "South Kensington", "Sloane Square", "Pimlico", "St James's Park", "Victoria", "Westminster", "Charing Cross", "Embankment", "Piccadilly Circus", "Highbury & Islington", "Holloway Road", "Arsenal", "Manor House", "Angel", "Old Street"
+  "Archway", "Finsbury Park", "King's Cross St Pancras", "South Kensington", "Gloucester Road", "Earl's Court", "Warwick Avenue", "Fulham Broadway", "Tufnell Park", "Kentish Town", "Camden Town", "Mornington Crescent", "Euston", "Hampstead", "Chalk Farm", "Belsize Park", "Warren Street", "Great Portland Street", "Baker Street", "West Hampstead", "Finchley Road", "Paddington", "Edgware Road", "Ladbroke Grove", "Westbourne Park", "Royal Oak", "Green Park", "Marble Arch", "Oxford Circus", "Holland Park", "Bayswater", "Queensway", "Notting Hill Gate", "South Kensington", "Sloane Square", "Pimlico", "St James's Park", "Victoria", "Westminster", "Charing Cross", "Embankment", "Piccadilly Circus", "Highbury & Islington", "Holloway Road", "Arsenal", "Manor House", "Angel", "Old Street"
 ];
 
 // If there is a station with a defined name
