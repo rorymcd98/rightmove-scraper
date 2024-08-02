@@ -24,6 +24,13 @@ async function getRightmoveFloorPlanUrlAsync(page: Page): Promise<string | null>
 async function getZooplaFloorPlanUrlAsync(page: Page): Promise<string | null> {
     const floorPlanImage = page.locator('div[data-testid="floorplan-thumbnail-0"]');
 
+    try {
+        await floorPlanImage.waitFor({ timeout: 3000 });
+    } catch (e) {
+        console.warn(`Failed to find floor plan for ${page.url}`)
+        return null;
+    }
+
     const lastSource = floorPlanImage.locator('source').last();
 
     const floorPlanUrl = (await lastSource.getAttribute("srcset"))?.replace("480/360", "1200/900")
@@ -33,6 +40,7 @@ async function getZooplaFloorPlanUrlAsync(page: Page): Promise<string | null> {
 
     return floorPlanUrl ?? null;
 }
+
 
 
 async function getOnTheMarketFloorPlanUrlAsync(page: Page): Promise<string | null> {
