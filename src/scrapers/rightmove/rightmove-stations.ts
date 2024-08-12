@@ -14,6 +14,30 @@ export async function getNearestStationsAsync(page: Page): Promise<NearestStatio
     for (let i = 0; i < count; i++) {
         const listItem = listItems.nth(i);
 
+        const stationNameElement = await listItem.locator('.cGDiWU3FlTjqSs-F1LwK4');
+        const distanceElement = await listItem.locator('._1ZY603T1ryTT3dMgGkM7Lg');
+
+        const stationName = await stationNameElement.textContent();
+        const distance = (await distanceElement.textContent())?.replace(" miles", "").replace(" mile", "") ?? null;
+
+        // Handle the edge case of King's Cross (there are so many stations that sometimes we miss the underground)
+        const nationalRailTag = await listItem.locator('svg[data-testid="svg-nationalrail"]');
+        const nationalRailTagCount = await nationalRailTag.count();
+        if (nationalRailTagCount > 0) {
+            if (stationName?.includes("King") && stationName.includes("Cross")) {
+
+                // Constructing the station object
+                const kingsCross: NearestStation = {
+                    stationName: "King's Cross St Pancras",
+                    distanceMiles: distance ? Number(distance) : -1,
+                    rawText: stationName?.trim() ?? ""
+                };
+
+                stations.push(kingsCross);
+                continue
+            }
+        }
+
         // Check for the existence of the underground tag
         const undergroundTag = await listItem.locator('svg[data-testid="svg-underground"]');
         const undergroundTagCount = await undergroundTag.count();
@@ -22,12 +46,6 @@ export async function getNearestStationsAsync(page: Page): Promise<NearestStatio
             // Skip this list item if it doesn't contain the underground tag
             continue;
         }
-
-        const stationNameElement = await listItem.locator('.cGDiWU3FlTjqSs-F1LwK4');
-        const distanceElement = await listItem.locator('._1ZY603T1ryTT3dMgGkM7Lg');
-
-        const stationName = await stationNameElement.textContent();
-        const distance = (await distanceElement.textContent())?.replace(" miles", "").replace(" mile", "") ?? null;
 
         // Constructing the station object
         const station: NearestStation = {

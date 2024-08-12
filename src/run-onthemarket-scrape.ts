@@ -12,7 +12,7 @@ config.set("purgeOnStart", false);
 
 const SearchUrls = {
   [Category.general]:
-    "https://www.onthemarket.com/for-sale/property/regents-park/?max-price=575000&min-bedrooms=2&radius=4.0&retirement=false&shared-ownership=false&sort-field=update_date",
+    "https://www.onthemarket.com/for-sale/property/regents-park/?max-price=605000&min-bedrooms=2&radius=4.0&retirement=false&shared-ownership=false&sort-field=update_date",
   [Category.jamie]:
     ""
 };
@@ -36,7 +36,7 @@ function buildOnTheMarketListingUrls(listingIds: string[]) {
 const url = SearchUrls[currentCategory];
 const runOnTheMarketScrape = async () => {
   const startingIndex = 1;
-  const endingIndex = 3;
+  const endingIndex = 4;
   const step = 1; // onthemarket default
   const indexPageUrls = createOnTheMarketIndexedUrls(url, startingIndex, endingIndex, step);
 
