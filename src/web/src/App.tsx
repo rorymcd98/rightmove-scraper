@@ -43,7 +43,7 @@ function filterDataByDistances(filter: LineNameMap, data: ListingWithState[]): L
     if (!property.listing.nearestStations) return false;
     return property.listing.nearestStations.some(station => {
       if (!station.stationName) return false;
-      if (!filterStations.includes(station.stationName)) return false;
+      // if (!filterStations.includes(station.stationName)) return false;
       const lines = stations[station.stationName];
       return lines.some(line => {
         const distance = posStationFilters.get(line); // Use posStationFilters instead of filter
@@ -159,6 +159,7 @@ function App() {
       ["District", 0],
       ["Piccadilly", 0],
       ["Waterloo City", 0],
+      ["Overground", 0],
     ]);
   });
   const [showStationDropdown, setShowStationDropdown] = useState<boolean>(false);

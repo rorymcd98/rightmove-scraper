@@ -37,8 +37,15 @@ export function matchToNearestName(candidateStation: string): StationName | null
     if (candidateStation in knownMappings) {
         return knownMappings[candidateStation];
     }
+    const lower = candidateStation.toLowerCase();
+    if (lower.includes("ondon bridge")) {
+        return "London Bridge";
+    }
+    if (lower.includes("king's cross") || lower.includes("kings cross")) {
+        return "King's Cross St Pancras";
+    }
 
-    candidateStation = candidateStation.replace("Underground", "").replace(/\(.*?\)/g, "").replace("Station", "").trim();
+    candidateStation = candidateStation.replace("London", "").replace("Underground", "").replace(/\(.*?\)/g, "").replace("Station", "").trim();
     const results = fuse.search(candidateStation);
 
     if (results.length == 0) {

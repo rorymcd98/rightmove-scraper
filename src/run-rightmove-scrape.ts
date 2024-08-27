@@ -4,7 +4,7 @@ import { createRightmoveListingFinder } from "./scrapers/rightmove/rightmove-ind
 
 import currentCategory, { Category } from "./set-category";
 import { IndexPage, RightmoveListing } from "./types";
-import { filterUnique } from "./scrapers/backport/filter-unique";
+import { filterUnique } from "./scrapers/filter-unique-func";
 import { ListingIdDataset } from "./scrapers/backport/backport-search-category";
 
 const config = Configuration.getGlobalConfig();
@@ -36,7 +36,7 @@ function buildRightmoveListingUrls(listingIds: string[]) {
 const url = SearchUrls[currentCategory];
 const runRightmoveScrape = async () => {
   const startingIndex = 0
-  const endingIndex = 100;
+  const endingIndex = 72;
   const step = 24; // rightmove default
   const indexPageUrls = createRightmoveIndexedUrls(url, startingIndex, endingIndex, step);
 

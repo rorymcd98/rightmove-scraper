@@ -269,7 +269,8 @@ export const stations = {
     "Wood Green": ["Piccadilly"],
     "Wood Lane": ["Hammersmith City", "Circle"],
     "Woodford": ["Central"],
-    "Woodside Park": ["Northern"]
+    "Woodside Park": ["Northern"],
+    "Overground": ["Overground"], // Counter intuitive but works
 } as const;
 
 export type StationName = keyof typeof stations;

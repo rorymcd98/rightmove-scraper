@@ -75,7 +75,7 @@ const Listing: React.FC<ListingProps> = ({ listing, isFavourite, addFavourite, r
         <div style={{ display: "flex", flexDirection: "column", textAlign: "left" }}>
           {listing.nearestStations?.filter(x => x != null && x.stationName != null).map(x => (
             <div>
-              {x.stationName} ({x.distanceMiles}mi.):  {stations[x.stationName as StationName]?.join(", ")}
+              {x.stationName == "Overground" ? (x.rawText + " (Over)") : x.stationName} ({x.distanceMiles}mi.):  {stations[x.stationName as StationName]?.join(", ")}
             </div>
           ))}
         </div>

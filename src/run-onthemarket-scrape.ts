@@ -4,7 +4,7 @@ import { createOnTheMarketListingFinder } from "./scrapers/onthemarket/onthemark
 
 import currentCategory, { Category } from "./set-category";
 import { IndexPage, OnTheMarketListing } from "./types";
-import { filterUnique } from "./scrapers/backport/filter-unique";
+import { filterUnique } from "./scrapers/filter-unique-func";
 import { ListingIdDataset as ListingIdDataset } from "./scrapers/backport/backport-search-category";
 
 const config = Configuration.getGlobalConfig();
@@ -14,7 +14,7 @@ const SearchUrls = {
   [Category.general]:
     "https://www.onthemarket.com/for-sale/property/regents-park/?max-price=605000&min-bedrooms=2&radius=4.0&retirement=false&shared-ownership=false&sort-field=update_date",
   [Category.jamie]:
-    ""
+    "https://www.onthemarket.com/for-sale/property/kensington-and-chelsea/?max-price=605000&min-bedrooms=2&polygons0=mngyHh%7CWjLdPjDha%40hDhCsA~cC~Vj_AjD%60%5DhDhCtAnpAiDhCkDvXaWbPuYja%40odAzrBuIfCwi%40fn%40ui%40fC%7BaC_dCk%7C%40gn%40sAqGmdA%7Di%40id%40%7Bi%40uQsGuYia%40sIia%40%3FucAkDcP%3Fc%60EiDguCkDcPtAcyAtIoTh%5CqGvyCpGjTqGb_B%3Fta%40zKll%40hCtQzKuIvv%40%3FhjBhL%7Ci%40%60OlT%60WpGhDrG%60g%40fC~FqGjL%3FjLzK&retirement=false&shared-ownership=false&sort-field=update_date"
 };
 
 function createOnTheMarketIndexedUrl(baseUrl: string, index: number): string {
@@ -36,7 +36,7 @@ function buildOnTheMarketListingUrls(listingIds: string[]) {
 const url = SearchUrls[currentCategory];
 const runOnTheMarketScrape = async () => {
   const startingIndex = 1;
-  const endingIndex = 4;
+  const endingIndex = 3;
   const step = 1; // onthemarket default
   const indexPageUrls = createOnTheMarketIndexedUrls(url, startingIndex, endingIndex, step);
 

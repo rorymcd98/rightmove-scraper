@@ -41,15 +41,15 @@ export async function getNearestStationsAsync(page: Page): Promise<NearestStatio
         // Check for the existence of the underground tag
         const undergroundTag = await listItem.locator('svg[data-testid="svg-underground"]');
         const undergroundTagCount = await undergroundTag.count();
-
+        let isOverground = false;
         if (undergroundTagCount === 0) {
             // Skip this list item if it doesn't contain the underground tag
-            continue;
+            isOverground = true;
         }
 
         // Constructing the station object
         const station: NearestStation = {
-            stationName: stationName ? matchToNearestName(stationName) : null,
+            stationName: isOverground ? "Overground" : stationName ? matchToNearestName(stationName) : null,
             distanceMiles: distance ? Number(distance) : -1,
             rawText: stationName?.trim() ?? ""
         };

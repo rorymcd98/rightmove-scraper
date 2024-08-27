@@ -1,11 +1,12 @@
 import { Configuration, Dataset, PlaywrightCrawler } from "crawlee";
-import { getIdFromUrl } from "../rightmove/rightmove-scrape";
-import { NearestStation, RightmoveListing } from "../../types";
-import { getNearestStationsAsync } from "../rightmove/rightmove-stations";
+import { getIdFromUrl } from "../zoopla/zoopla-scrape";
+import currentCategory from "../../set-category";
+import { NearestStation, ZooplaListing } from "../../types";
+import { getNearestStationsAsync } from "../zoopla/zoopla-stations";
 
 // copied this because it's easier
-function buildRightmoveListingUrls(listingIds: string[]) {
-    return listingIds.map(id => `https://rightmove.co.uk/properties/${id}`);
+function buildZooplaListingUrls(listingIds: string[]) {
+    return listingIds.map(id => `https://zoopla.co.uk/for-sale/details/${id}`);
 }
 
 const config = Configuration.getGlobalConfig();
@@ -14,29 +15,29 @@ type BackportStations = { listingId: number, nearestStations: NearestStation[] }
 
 async function Main() {
 
-    const allDataset = await Dataset.open<{ listings: RightmoveListing[] }>("all-rightmove");
+    const allDataset = await Dataset.open<{ listings: ZooplaListing[] }>("all-zoopla");
     const allListings = await allDataset.getData();
 
-    config.set("defaultRequestQueueId", "backport-stations-rightmove123");
-    config.set("defaultDatasetId", "backport-stations-rightmove");
+    config.set("defaultRequestQueueId", "backport-stations-zoopla-" + currentCategory);
+    config.set("defaultDatasetId", "backport-stations-zoopla-" + currentCategory);
     const backporter = createNearestStationsBackporter();
 
-    const urls = buildRightmoveListingUrls(allListings.items.flatMap(x => x.listings).map(x => x.listingId.toString()));
+    const urls = buildZooplaListingUrls(allListings.items.flatMap(x => x.listings).map(x => x.listingId.toString()));
     backporter.run(urls)
 }
 
 async function CreateNewDataset() {
-    const backportDataset = await Dataset.open<BackportStations>("backport-stations-rightmove");
+    const backportDataset = await Dataset.open<BackportStations>("backport-stations-zoopla-" + currentCategory);
     const backportMap = new Map<Number, NearestStation[]>();
 
     (await backportDataset.getData()).items.forEach(x => {
         backportMap.set(x.listingId, x.nearestStations);
     });
 
-    const allDataset = await Dataset.open<{ listings: RightmoveListing[] }>("all-rightmove");
+    const allDataset = await Dataset.open<{ listings: ZooplaListing[] }>("all-zoopla");
     const allListings = (await allDataset.getData()).items.flatMap(x => x.listings);
 
-    const uniqueListings = new Map<number, RightmoveListing>();
+    const uniqueListings = new Map<number, ZooplaListing>();
 
 
     for (const listing of allListings) {
@@ -47,7 +48,7 @@ async function CreateNewDataset() {
         const nearest = backportMap.get(x.listingId);
         x.nearestStations = nearest ?? null;
     }
-    const allDataset2 = await Dataset.open<{ listings: RightmoveListing[] }>("all-rightmove2");
+    const allDataset2 = await Dataset.open<{ listings: ZooplaListing[] }>("all-zoopla2");
     await allDataset2.pushData({ listings: Array.from(uniqueListings.values()) })
 
 }

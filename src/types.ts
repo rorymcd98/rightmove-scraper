@@ -73,4 +73,5 @@ export type LineName =
   "Central" |
   "Victoria" |
   "District" |
-  "Elizabeth";
+  "Elizabeth" |
+  "Overground";
