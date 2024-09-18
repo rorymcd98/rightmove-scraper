@@ -1,0 +1,229 @@
+// @@filename: src/app-styles.css
+:root {
+  --primary-color: #3498db;
+  --secondary-color: #2ecc71;
+  --background-color: #f4f4f4;
+  --text-color: #333;
+  --border-color: #ddd;
+}
+
+body {
+  font-family: 'Roboto', sans-serif;
+  background-color: var(--background-color);
+  color: var(--text-color);
+  line-height: 1.6;
+  margin: 0;
+  padding: 0;
+}
+
+.App {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+header {
+  background-color: var(--primary-color);
+  color: white;
+  padding: 1rem;
+  text-align: center;
+}
+
+.filter-panel {
+  background-color: white;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.filter-group {
+  margin-bottom: 15px;
+}
+
+.filter-group label {
+  display: block;
+  margin-bottom: 5px;
+}
+
+.filter-group input[type="text"],
+.filter-group input[type="number"],
+.filter-group input[type="date"],
+.filter-group select {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+}
+
+.listing-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(600px, 1fr));
+  gap: 20px;
+}
+
+.listing {
+  background-color: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease;
+}
+
+.listing:hover {
+  transform: translateY(-5px);
+}
+
+.listing h2 {
+  font-size: 1.2rem;
+  margin: 0;
+  padding: 15px;
+  background-color: var(--primary-color);
+  color: white;
+  cursor: pointer;
+}
+
+.image-gallery {
+  position: relative;
+  height: 200px;
+  overflow: hidden;
+}
+
+.image-gallery-container {
+  display: flex;
+  transition: transform 0.3s ease-in-out;
+  height: 100%;
+}
+
+.image-gallery-item {
+  flex: 0 0 100%;
+  height: 100%;
+}
+
+.image-gallery-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.image-gallery-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background-color: rgba(0, 0, 0, 0.5);
+  color: white;
+  border: none;
+  padding: 10px;
+  cursor: pointer;
+}
+
+.image-gallery-nav.prev {
+  left: 10px;
+}
+
+.image-gallery-nav.next {
+  right: 10px;
+}
+
+.image-gallery-indicator {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+}
+
+.image-gallery-indicator-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.5);
+  margin: 0 4px;
+}
+
+.image-gallery-indicator-dot.active {
+  background-color: white;
+}
+
+.listing-details {
+  padding: 15px;
+}
+
+.listing-details p {
+  margin: 5px 0;
+}
+
+.listing-actions {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 15px;
+}
+
+.listing-actions button {
+  background-color: var(--secondary-color);
+  color: white;
+  border: none;
+  padding: 8px 15px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.listing-actions button:hover {
+  background-color: #27ae60;
+}
+
+.error-message {
+  background-color: #f8d7da;
+  color: #721c24;
+  padding: 10px;
+  border-radius: 4px;
+  margin-bottom: 20px;
+}
+
+.loading-indicator {
+  text-align: center;
+  padding: 20px;
+  font-size: 1.2rem;
+  color: var(--primary-color);
+}
+
+@media (max-width: 768px) {
+  .App {
+    padding: 10px;
+  }
+
+  .listing-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .filter-panel {
+    padding: 15px;
+  }
+
+  .image-gallery {
+    height: 150px;
+  }
+
+  .listing-actions {
+    flex-direction: column;
+  }
+
+  .listing-actions button {
+    margin-bottom: 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  header h1 {
+    font-size: 1.5rem;
+  }
+
+  .listing h2 {
+    font-size: 1rem;
+  }
+
+  .image-gallery {
+    height: 120px;
+  }
+}
