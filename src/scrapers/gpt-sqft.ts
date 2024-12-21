@@ -22,23 +22,28 @@ async function getRightmoveFloorPlanUrlAsync(page: Page): Promise<string | null>
 }
 
 async function getZooplaFloorPlanUrlAsync(page: Page): Promise<string | null> {
-    const floorPlanImage = page.locator('div[data-testid="floorplan-thumbnail-0"]');
+    const floorPlanButton = page.locator('button:has-text("Floor Plan")');
 
     try {
-        await floorPlanImage.waitFor({ timeout: 3000 });
+        await floorPlanButton.waitFor({ timeout: 3000 });
     } catch (e) {
-        console.warn(`Failed to find floor plan for ${page.url}`)
+        console.warn(`Failed to find floor plan button for ${page.url}`);
         return null;
     }
 
-    const lastSource = floorPlanImage.locator('source').last();
+    await floorPlanButton.click();
+    
+    const classElement = await page.locator('.ds9quu1');
+    const pictureElement = await classElement.locator('picture');
+    const source = await pictureElement.locator('source').first();
+    let maxResolutionUrl = null;
 
-    const floorPlanUrl = (await lastSource.getAttribute("srcset"))?.replace("480/360", "1200/900")
-        .split(" ")
-        .at(0)
-        ?.replace(":p", "");
+    if (source == null) return maxResolutionUrl;
+    const srcset = await source.getAttribute("srcset");
+    if (srcset == null) return maxResolutionUrl;
+    maxResolutionUrl = srcset.split(' ').at(-2)?.replace(":p", "") ?? null; 
 
-    return floorPlanUrl ?? null;
+    return maxResolutionUrl;
 }
 
 
@@ -100,7 +105,7 @@ async function getFloorPlan(page: Page, site: Site, identifier: string, log: Log
     FloorPlanUrls.set(identifier, floorPlanUrl ?? undefined)
 
     if (floorPlanUrl == null) {
-        log.warning("Something went wrong trying to find the floor plan img src");
+        log.warning(page.url + " - Something went wrong trying to find the floor plan img src");
         return;
     }
 

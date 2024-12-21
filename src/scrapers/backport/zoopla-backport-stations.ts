@@ -22,7 +22,7 @@ async function Main() {
     config.set("defaultDatasetId", "backport-stations-zoopla-" + currentCategory);
     const backporter = createNearestStationsBackporter();
 
-    const urls = buildZooplaListingUrls(allListings.items.flatMap(x => x.listings).map(x => x.listingId.toString()));
+    const urls = buildZooplaListingUrls(allListings.items.flatMap(x => x.listings).filter(x => x.nearestStations == null || x.nearestStations.length == 0).map(x => x.listingId.toString()));
     backporter.run(urls)
 }
 
@@ -66,10 +66,12 @@ function createNearestStationsBackporter() {
                 log.error("Expected the url to not be null - terminating")
                 return;
             }
+            const listingId = getIdFromUrl(request.url);
+            console.log("Listing id found" + listingId);
 
             const stationNames = await getNearestStationsAsync(page);
+            console.log("HERE " + stationNames)
 
-            const listingId = getIdFromUrl(request.loadedUrl);
 
             const res: BackportStations =
             {
@@ -77,8 +79,10 @@ function createNearestStationsBackporter() {
                 nearestStations: stationNames
             };
 
+            console.log(res)
+
             // Push the list of urls to the dataset
-            await Dataset.pushData<BackportStations>(res);
+            if(stationNames.length) await Dataset.pushData<BackportStations>(res);
         },
         // Uncomment this option to see the browser window.
         headless: true,

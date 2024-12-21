@@ -3,6 +3,7 @@ import './App.css';
 import Listing from './Listing';
 import { LineName, PropertyListing, RoomDimension, Site } from '../../types';
 import { stations, StationName } from '../../transport';
+import Histogram from './histogram';
 
 type SortCriteria = "date" | "squareFootage" | "limittingRoomArea";
 type LineNameMap = Map<LineName, number>;
@@ -20,7 +21,8 @@ type ListingWithState = {
 }
 
 const filterStations: StationName[] = [
-  "Maida Vale", "Archway", "Finsbury Park", "King's Cross St Pancras", "South Kensington", "Gloucester Road", "Earl's Court", "Warwick Avenue", "Fulham Broadway", "Tufnell Park", "Kentish Town", "Camden Town", "Mornington Crescent", "Euston", "Hampstead", "Chalk Farm", "Belsize Park", "Warren Street", "Great Portland Street", "Baker Street", "West Hampstead", "Finchley Road", "Paddington", "Edgware Road", "Ladbroke Grove", "Westbourne Park", "Royal Oak", "Green Park", "Marble Arch", "Oxford Circus", "Holland Park", "Bayswater", "Queensway", "Notting Hill Gate", "South Kensington", "Sloane Square", "Pimlico", "St James's Park", "Victoria", "Westminster", "Charing Cross", "Embankment", "Piccadilly Circus", "Highbury & Islington", "Holloway Road", "Arsenal", "Manor House", "Angel", "Old Street"
+  "Highbury & Islington"
+  //"Maida Vale", "Archway", "Finsbury Park", "King's Cross St Pancras", "South Kensington", "Gloucester Road", "Earl's Court", "Warwick Avenue", "Fulham Broadway", "Tufnell Park", "Kentish Town", "Camden Town", "Mornington Crescent", "Euston", "Hampstead", "Chalk Farm", "Belsize Park", "Warren Street", "Great Portland Street", "Baker Street", "West Hampstead", "Finchley Road", "Paddington", "Edgware Road", "Ladbroke Grove", "Westbourne Park", "Royal Oak", "Green Park", "Marble Arch", "Oxford Circus", "Holland Park", "Bayswater", "Queensway", "Notting Hill Gate", "South Kensington", "Sloane Square", "Pimlico", "St James's Park", "Victoria", "Westminster", "Charing Cross", "Embankment", "Piccadilly Circus", "Highbury & Islington", "Holloway Road", "Arsenal", "Manor House", "Angel", "Old Street"
 ];
 
 // If there is a station with a defined name
@@ -84,6 +86,7 @@ function filterDataByLimittingRoom(limittingRoomNumber: number, limittingDimensi
 function App() {
   const [filterDate, setFilterDate] = useState(() => localStorage.getItem('filterDate') || '');
   const [minSquareFootage, setMinSquareFootage] = useState<string>(() => localStorage.getItem('minSquareFootage') || '');
+  const [searchTerm, setSearchTerm] = useState<string>("");
   const [sortCriteria, setSortCriteria] = useState<SortCriteria | null>(() => localStorage.getItem('sortCriteria') as SortCriteria || null);
   const [showFavourite, setShowFavourite] = useState<boolean>(() => JSON.parse(localStorage.getItem('showFavourite') || 'false'));
   const [showHidden, setShowHidden] = useState<boolean>(() => JSON.parse(localStorage.getItem('showHidden') || 'false'));
@@ -220,6 +223,10 @@ function App() {
       data = data.filter(r => (r.listing.squareFootage ?? fallbackFootage) > Number(minSquareFootage));
     }
 
+    if (searchTerm !== ""){
+      data = data.filter(x => x.listing.title.toLowerCase().includes(searchTerm) || x.listing.location?.toLowerCase().includes(searchTerm) || x.listing.nearestStations?.some(x => x.rawText.toLowerCase().includes(searchTerm)))
+    }
+
     data = data.filter(x => {
       const listing = x.listing;
       const isHidden = hidden.some(x => x.listingId == listing.listingId && x.site == listing.site);
@@ -234,7 +241,7 @@ function App() {
     data = sortFilteredData(data);
     setFilteredData(data);
     setCurrentPage(1); // Reset to the first page after filtering
-  }, [filterDate, minSquareFootage, sortFilteredData, showMissingFtg, stationDistanceFilters, hidden, favourites, showFavourite, showHidden, limittingArea, limittingDimension, limittingRoomNumber, showMissingRoomDimensions]);
+  }, [searchTerm, filterDate, minSquareFootage, sortFilteredData, showMissingFtg, stationDistanceFilters, hidden, favourites, showFavourite, showHidden, limittingArea, limittingDimension, limittingRoomNumber, showMissingRoomDimensions]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -324,6 +331,7 @@ function App() {
 
   return (
     <>
+      {/* <Histogram data={originalData.current.map(x => x.listing)} /> */}
       <div style={{ display: "inline-flex", flexDirection: "row", width: "100%", justifyContent: "space-around" }}>
         <div>
           <button onClick={() => setShowStationDropdown(!showStationDropdown)}>
@@ -401,6 +409,12 @@ function App() {
             />
             Hide missing square footage
           </label>
+          <input
+            type="string"
+            placeholder="Enter a search term"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value.toLowerCase())}
+          />
         </div>
         <div style={{ display: "flex", flexDirection: "column" }}>
           <div style={{ display: "flex", flexDirection: "column", textAlign: "left" }}>

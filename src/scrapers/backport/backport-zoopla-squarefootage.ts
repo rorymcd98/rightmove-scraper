@@ -21,7 +21,7 @@ async function Main() {
     const backporter = createNearestSquarefootagesBackporter();
 
     const urls = buildZooplaListingUrls(allListings.items.flatMap(x => x.listings).filter(x => x.debug.footageResolution == "unresolved").map(x => x.listingId.toString()));
-    backporter.run(urls)
+    backporter.run(urls);
 }
 
 async function CreateNewDataset() {

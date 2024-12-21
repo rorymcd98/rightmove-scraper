@@ -11,9 +11,9 @@ config.set("purgeOnStart", false);
 
 const SearchUrls = {
   [Category.general]:
-    "https://www.zoopla.co.uk/for-sale/property/regents-park/?beds_min=2&polyenc=gvhyH~uQ~VtkUuYv_CyyAvXqdDc%7B%40mtCa%60EuqAylDua%40eoEuAoyCti%40myCltC%7DpC~qG%60%7B%40l%7C%40jfD&price_max=605000&q=Regent%27s%20Park%2C%20London&radius=0&results_sort=newest_listings&search_source=for-sale",
+    "https://www.zoopla.co.uk/for-sale/property/regents-park/?beds_min=2&polyenc=gvhyH~uQ~VtkUuYv_CyyAvXqdDc%7B%40mtCa%60EuqAylDua%40eoEuAoyCti%40myCltC%7DpC~qG%60%7B%40l%7C%40jfD&q=Regent%27s%20Park%2C%20London&radius=0&results_sort=newest_listings&search_source=for-sale",
   [Category.jamie]:
-    "https://www.zoopla.co.uk/for-sale/property/station/tube/kings-cross-st-pancras/?beds_min=2&price_max=605000&q=King%27s+Cross+St.+Pancras+Station%2C+London&results_sort=newest_listings&search_source=for-sale&radius=0&hidePoly=false&polyenc=_wlyHtyYzyAi%7BArv%40rMhi%40%60c%40bb%40%7CyHgyAhwB%7D%7DAzsAmtAiCoaAutCepArgB%7DaB%7BcBidAafAoRejBP%7DtDmF%7DvClK%7D%7EAv%60%40kgAjyFz%60%40%7DBcw%40%7ENhGhBwBb%40iBvDgAfZv%40iLrw%40%60NpxEf%5BvfB"
+    "https://www.zoopla.co.uk/for-sale/property/station/tube/kings-cross-st-pancras/?beds_min=2&q=King%27s+Cross+St.+Pancras+Station%2C+London&results_sort=newest_listings&search_source=for-sale&radius=0&hidePoly=false&polyenc=_wlyHtyYzyAi%7BArv%40rMhi%40%60c%40bb%40%7CyHgyAhwB%7D%7DAzsAmtAiCoaAutCepArgB%7DaB%7BcBidAafAoRejBP%7DtDmF%7DvClK%7D%7EAv%60%40kgAjyFz%60%40%7DBcw%40%7ENhGhBwBb%40iBvDgAfZv%40iLrw%40%60NpxEf%5BvfB"
 };
 
 function createZooplaIndexedUrl(baseUrl: string, index: number): string {

@@ -172,13 +172,13 @@ export function createZooplaListingScraper(listingIdToDateMap: Map<number, Date>
     retryOnBlocked: true,
     async requestHandler({ request, page, log }) {
       const pageTitle = await page.title();
-      log.info(`Title of ${request.loadedUrl} is '${pageTitle}'`);
+      log.info(`Title of ${request.url} is '${pageTitle}'`);
 
-      if (request.loadedUrl == undefined) {
+      if (request.url == undefined) {
         log.error("Expected the url to not be null - terminating")
         return;
       }
-      const listingId = getIdFromUrl(request.loadedUrl);
+      const listingId = getIdFromUrl(request.url);
       const identifier = listingId + "zoopla";
 
       const rawPriceNumber_pounds = await findPriceInPoundsAsync(page, log);

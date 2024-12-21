@@ -12,9 +12,9 @@ config.set("purgeOnStart", false);
 
 const SearchUrls = {
   [Category.general]:
-    "https://www.rightmove.co.uk/property-for-sale/find.html?locationIdentifier=USERDEFINEDAREA%5E%7B%22id%22%3A%228479230%22%7D&minBedrooms=2&maxPrice=605000&sortType=6&propertyTypes=&mustHave=&dontShow=&furnishTypes=&keywords=",
+    "https://www.rightmove.co.uk/property-for-sale/find.html?locationIdentifier=USERDEFINEDAREA%5E%7B%22id%22%3A%228479230%22%7D&minBedrooms=2&sortType=6&propertyTypes=&mustHave=&dontShow=&furnishTypes=&keywords=",
   [Category.jamie]:
-    "https://www.rightmove.co.uk/property-for-sale/find.html?locationIdentifier=USERDEFINEDAREA%5E%7B%22id%22%3A%228760020%22%7D&minBedrooms=2&maxPrice=605000&sortType=6&propertyTypes=&mustHave=&dontShow=&furnishTypes=&keywords=",
+    "https://www.rightmove.co.uk/property-for-sale/find.html?locationIdentifier=USERDEFINEDAREA%5E%7B%22id%22%3A%228760020%22%7D&minBedrooms=2&sortType=6&propertyTypes=&mustHave=&dontShow=&furnishTypes=&keywords=",
 };
 
 function createRightmoveIndexedUrl(baseUrl: string, index: number): string {
